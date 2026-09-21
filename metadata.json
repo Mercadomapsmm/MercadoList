@@ -2,5 +2,5 @@
   "name": "Lista de Compras Doméstica",
   "description": "App acessível e eficiente de lista de compras doméstica com comando de voz, fontes ampliadas de alta legibilidade e controle fácil.",
   "requestFramePermissions": ["microphone"],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

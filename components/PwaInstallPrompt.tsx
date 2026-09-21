@@ -18,6 +18,9 @@ import {
   Laptop,
   Check,
   Info,
+  ShieldAlert,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -77,7 +80,25 @@ export function PwaInstallPrompt({
   const [installedSuccessfully, setInstalledSuccessfully] = useState(false);
   const [initialDevice] = useState(() => detectInitialDevice());
   const [activeTab, setActiveTab] = useState<DeviceCategory>(initialDevice.tab);
+  const [copiedLink, setCopiedLink] = useState(false);
   const detectedSystemName = initialDevice.name;
+
+  const isSamsungBrowser = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /SamsungBrowser/i.test(window.navigator.userAgent);
+  }, []);
+
+  const handleCopyLink = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        navigator.clipboard.writeText(window.location.href);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 3000);
+      } catch {
+        // Ignore fallback
+      }
+    }
+  };
 
   // Listen for beforeinstallprompt & appinstalled events
   useEffect(() => {
@@ -219,7 +240,7 @@ export function PwaInstallPrompt({
 
         {/* Native 1-Click Install Button (When available on Android/Chrome/Edge/Windows/Mac) */}
         {hasNativePrompt && !installedSuccessfully && (
-          <div className="px-5 pt-4">
+          <div className="px-5 pt-4 space-y-2">
             <button
               id="pwa-native-install-cta"
               type="button"
@@ -233,6 +254,9 @@ export function PwaInstallPrompt({
               <Download className="w-5 h-5 animate-bounce" />
               <span>Instalar Aplicativo Agora (1 Clique)</span>
             </button>
+            <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 font-medium">
+              💡 No Android/Samsung: se aparecer o aviso do Play Protect, toque em <strong>&ldquo;Mais detalhes ⌵&rdquo;</strong> e <strong>&ldquo;Instalar assim mesmo&rdquo;</strong>.
+            </p>
           </div>
         )}
 
@@ -344,35 +368,92 @@ export function PwaInstallPrompt({
         <div className="p-5">
           {/* ANDROID TAB */}
           {activeTab === 'android' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
-                  Compatível com todas as versões do Android (Samsung, Xiaomi, Motorola, etc.)
+                  Compatível com todas as marcas (Samsung Galaxy, Xiaomi, Motorola, etc.)
                 </span>
                 <span className="text-[11px] font-bold text-slate-400">Android 8 ao 15+</span>
               </div>
 
+              {/* Standard Steps */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <div className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-emerald-600" />
+                  <span>Passo a passo no navegador do celular:</span>
+                </div>
                 <ol className="space-y-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200">
                   <li className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
                     <span>
-                      No navegador (<strong>Google Chrome</strong>, <strong>Samsung Internet</strong> ou <strong>Edge</strong>), toque no menu de <strong>três pontinhos (⋮)</strong> no canto superior ou inferior.
+                      No navegador (<strong>Google Chrome</strong> ou <strong>Samsung Internet</strong>), toque no menu de <strong>três pontinhos (⋮)</strong> no topo ou <strong>três traços (≡)</strong> na barra inferior.
                     </span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
                     <span>
-                      Toque na opção <strong>&ldquo;Instalar aplicativo&rdquo;</strong> ou <strong>&ldquo;Adicionar à tela inicial&rdquo;</strong>.
+                      Toque na opção <strong>&ldquo;Instalar aplicativo&rdquo;</strong> ou <strong>&ldquo;Adicionar à tela inicial&rdquo;</strong> (no Samsung: <em>&ldquo;Adicionar página a &gt; Tela inicial&rdquo;</em>).
                     </span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">3</span>
                     <span>
-                      Confirme em <strong>&ldquo;Instalar&rdquo;</strong>. O ícone oficial será adicionado à sua tela inicial e funcionará como um aplicativo nativo!
+                      Confirme em <strong>&ldquo;Instalar&rdquo;</strong>. O ícone oficial será adicionado à sua tela inicial e funcionará 100% offline!
                     </span>
                   </li>
                 </ol>
+              </div>
+
+              {/* SOLUÇÃO PLAY PROTECT - ESPECÍFICA PARA O PROBLEMA DO PRINT */}
+              <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 space-y-3 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0 shadow-sm mt-0.5">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                      <span>Apareceu &ldquo;App de risco bloqueado&rdquo; no Google Play Protect?</span>
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-amber-800 dark:text-amber-200 mt-1 leading-relaxed">
+                      Fique tranquilo! Ao instalar pelo navegador <strong>Samsung Internet</strong> no Android 14/15, o Play Protect exibe esse alerta automático porque o pacote foi gerado pelo navegador. <strong>Este aplicativo é 100% seguro, sem anúncios e sem rastreamento.</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 space-y-2">
+                  <div className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                    <span>👉 Como liberar e instalar agora mesmo:</span>
+                  </div>
+                  <div className="space-y-2 text-xs text-slate-700 dark:text-slate-200">
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <span>
+                        Na janela do Play Protect que apareceu no seu celular, toque em <strong>&ldquo;Mais detalhes ⌵&rdquo;</strong> (abaixo do texto explicativo).
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <span>
+                        Toque no botão <strong>&ldquo;Instalar assim mesmo&rdquo;</strong> (ou &ldquo;Instalar mesmo assim&rdquo;). O aplicativo será instalado imediatamente!
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-amber-200 dark:border-amber-800/80 text-xs">
+                  <span className="text-[11px] sm:text-xs text-amber-900 dark:text-amber-200 font-medium">
+                    ⚡ <em>Dica:</em> No <strong>Google Chrome</strong> a instalação ocorre direta, sem nenhum aviso do Play Protect.
+                  </span>
+                  <button
+                    id="copy-link-for-chrome-btn"
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 dark:bg-amber-900/60 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition-colors text-xs shrink-0"
+                  >
+                    {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link para abrir no Chrome'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
