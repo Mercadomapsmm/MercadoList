@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Lexend', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+/* Accessibility high-contrast styles and custom utilities */
+.high-contrast-mode {
+  --bg-main: #000000;
+  --text-main: #ffffff;
+}
+
+/* Smooth transitions for accessibility resize */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
