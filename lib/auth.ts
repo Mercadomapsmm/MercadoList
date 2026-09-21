@@ -245,3 +245,59 @@ export function logoutUser(): void {
   setCurrentUser(null);
   setAutoLoginEnabled(false);
 }
+
+/**
+ * Realiza login ou cadastro direto com o padrão de Conta do Google.
+ */
+export function loginWithGoogleAccount(
+  email: string = 'mercadomapsmm@gmail.com',
+  name: string = 'Mercado Maps'
+): User {
+  const accounts = getStoredAccounts();
+  const existing = accounts.find((acc) => acc.username.toLowerCase() === email.toLowerCase());
+
+  if (existing) {
+    const user: User = {
+      id: existing.id,
+      username: existing.username,
+      name: existing.name,
+      createdAt: existing.createdAt,
+    };
+    setCurrentUser(user);
+    setAutoLoginEnabled(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_HAS_CREATED_KEY, 'true');
+    }
+    return user;
+  }
+
+  const newAccount: StoredUserAccount = {
+    id: `user-google-${Date.now()}`,
+    username: email.toLowerCase(),
+    name: name,
+    passwordHash: 'google_session_auth',
+    createdAt: Date.now(),
+  };
+
+  accounts.push(newAccount);
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(accounts));
+      localStorage.setItem(STORAGE_HAS_CREATED_KEY, 'true');
+      localStorage.setItem(STORAGE_AUTO_LOGIN_KEY, 'true');
+    } catch {
+      // Ignore
+    }
+  }
+
+  const user: User = {
+    id: newAccount.id,
+    username: newAccount.username,
+    name: newAccount.name,
+    createdAt: newAccount.createdAt,
+  };
+
+  setCurrentUser(user);
+  return user;
+}
