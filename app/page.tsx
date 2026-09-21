@@ -13,7 +13,7 @@ import { ProductTableModal } from '@/components/ProductTableModal';
 import { PwaRegister } from '@/components/PwaRegister';
 import { AuthScreen } from '@/components/AuthScreen';
 import { User } from '@/types/auth';
-import { getCurrentUser, logoutUser } from '@/lib/auth';
+import { getCurrentUser, logoutUser, resolveAutoLoginUser } from '@/lib/auth';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
 import { speakListItems, stopSpeaking } from '@/lib/speech';
@@ -198,10 +198,11 @@ export default function ShoppingListPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const loggedUser = getCurrentUser();
-        if (loggedUser) {
-          setCurrentUser(loggedUser);
-          const userListsKey = `lista_compras_domestica_lists_${loggedUser.id}`;
+        // Login automático se o usuário já criou usuário e senha anteriormente
+        const autoUser = resolveAutoLoginUser();
+        if (autoUser) {
+          setCurrentUser(autoUser);
+          const userListsKey = `lista_compras_domestica_lists_${autoUser.id}`;
           const savedUserLists = localStorage.getItem(userListsKey);
           if (savedUserLists) {
             const parsed = JSON.parse(savedUserLists);
@@ -218,13 +219,7 @@ export default function ShoppingListPage() {
             }
           }
         } else {
-          const savedLists = localStorage.getItem('lista_compras_domestica_lists');
-          if (savedLists) {
-            const parsed = JSON.parse(savedLists);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setLists(parsed);
-            }
-          }
+          setCurrentUser(null);
         }
 
         const savedActiveId = localStorage.getItem('lista_compras_domestica_active_id');

@@ -2,44 +2,70 @@ import { User, StoredUserAccount } from '@/types/auth';
 
 const STORAGE_USERS_KEY = 'lista_compras_domestica_users';
 const STORAGE_CURRENT_USER_KEY = 'lista_compras_domestica_current_user';
+const STORAGE_AUTO_LOGIN_KEY = 'lista_compras_domestica_auto_login';
+const STORAGE_HAS_CREATED_KEY = 'lista_compras_user_created_account';
 
-// Contas padrão pré-configuradas para demonstração e primeiro acesso rápido
-const DEFAULT_ACCOUNTS: StoredUserAccount[] = [
-  {
-    id: 'user-familia',
-    username: 'usuario',
-    name: 'Família',
-    passwordHash: '123456',
-    createdAt: 1700000000000,
-  },
-  {
-    id: 'user-admin',
-    username: 'admin',
-    name: 'Administrador',
-    passwordHash: 'admin123',
-    createdAt: 1700000000000,
-  },
-];
-
-export function getStoredAccounts(): StoredUserAccount[] {
-  if (typeof window === 'undefined') return DEFAULT_ACCOUNTS;
+/**
+ * Retorna se o usuário já criou seu usuário e senha neste navegador/dispositivo.
+ */
+export function hasUserCreatedAccount(): boolean {
+  if (typeof window === 'undefined') return false;
   try {
-    const raw = localStorage.getItem(STORAGE_USERS_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
-      return DEFAULT_ACCOUNTS;
-    }
-    const accounts: StoredUserAccount[] = JSON.parse(raw);
-    if (!Array.isArray(accounts) || accounts.length === 0) {
-      localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(DEFAULT_ACCOUNTS));
-      return DEFAULT_ACCOUNTS;
-    }
-    return accounts;
+    const hasCreatedFlag = localStorage.getItem(STORAGE_HAS_CREATED_KEY) === 'true';
+    if (hasCreatedFlag) return true;
+    const accounts = getStoredAccounts();
+    return accounts.length > 0;
   } catch {
-    return DEFAULT_ACCOUNTS;
+    return false;
   }
 }
 
+/**
+ * Retorna se o login automático está ativo (padrão é true após criar a conta).
+ */
+export function isAutoLoginEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const raw = localStorage.getItem(STORAGE_AUTO_LOGIN_KEY);
+    // Se ainda não foi definido, o padrão é true
+    if (raw === null) return true;
+    return raw === 'true';
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Define se o login automático está ativo.
+ */
+export function setAutoLoginEnabled(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_AUTO_LOGIN_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Obtém a lista de contas salvas no dispositivo.
+ */
+export function getStoredAccounts(): StoredUserAccount[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_USERS_KEY);
+    if (!raw) return [];
+    const accounts: StoredUserAccount[] = JSON.parse(raw);
+    if (!Array.isArray(accounts)) return [];
+    return accounts;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Obtém a sessão do usuário atual.
+ */
 export function getCurrentUser(): User | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -51,6 +77,9 @@ export function getCurrentUser(): User | null {
   }
 }
 
+/**
+ * Define a sessão do usuário atual.
+ */
 export function setCurrentUser(user: User | null): void {
   if (typeof window === 'undefined') return;
   try {
@@ -60,11 +89,48 @@ export function setCurrentUser(user: User | null): void {
       localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
     }
   } catch {
-    // Ignore storage errors
+    // Ignore
   }
 }
 
-export function loginUser(usernameInput: string, passwordInput: string): { success: boolean; user?: User; error?: string } {
+/**
+ * Tenta resolver o usuário para login automático.
+ * Se o usuário já criou usuário e senha e o auto-login estiver ativo,
+ * retorna a conta para entrar direto sem solicitar dados.
+ */
+export function resolveAutoLoginUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  if (!isAutoLoginEnabled()) return null;
+
+  // 1. Verifica se há uma sessão ativa salva
+  const current = getCurrentUser();
+  if (current) return current;
+
+  // 2. Se não houver sessão ativa, mas já existe conta criada, usa a última conta registrada
+  const accounts = getStoredAccounts();
+  if (accounts.length > 0) {
+    const lastAccount = accounts[accounts.length - 1];
+    const autoUser: User = {
+      id: lastAccount.id,
+      username: lastAccount.username,
+      name: lastAccount.name,
+      createdAt: lastAccount.createdAt,
+    };
+    setCurrentUser(autoUser);
+    return autoUser;
+  }
+
+  return null;
+}
+
+/**
+ * Autentica o usuário com usuário e senha.
+ */
+export function loginUser(
+  usernameInput: string,
+  passwordInput: string,
+  rememberAutoLogin: boolean = true
+): { success: boolean; user?: User; error?: string } {
   const cleanUsername = usernameInput.trim().toLowerCase();
   const cleanPassword = passwordInput.trim();
 
@@ -81,7 +147,7 @@ export function loginUser(usernameInput: string, passwordInput: string): { succe
   );
 
   if (!account) {
-    return { success: false, error: 'Usuário não encontrado. Verifique os dados ou crie uma conta nova.' };
+    return { success: false, error: 'Usuário não encontrado. Crie sua conta primeiro.' };
   }
 
   if (account.passwordHash !== cleanPassword) {
@@ -96,10 +162,22 @@ export function loginUser(usernameInput: string, passwordInput: string): { succe
   };
 
   setCurrentUser(user);
+  setAutoLoginEnabled(rememberAutoLogin);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_HAS_CREATED_KEY, 'true');
+  }
+
   return { success: true, user };
 }
 
-export function registerUser(nameInput: string, usernameInput: string, passwordInput: string): { success: boolean; user?: User; error?: string } {
+/**
+ * Cria um novo usuário e senha e já realiza o login automático.
+ */
+export function registerUser(
+  nameInput: string,
+  usernameInput: string,
+  passwordInput: string
+): { success: boolean; user?: User; error?: string } {
   const cleanName = nameInput.trim();
   const cleanUsername = usernameInput.trim().toLowerCase();
   const cleanPassword = passwordInput.trim();
@@ -116,8 +194,8 @@ export function registerUser(nameInput: string, usernameInput: string, passwordI
   if (!cleanPassword) {
     return { success: false, error: 'Por favor, crie uma senha.' };
   }
-  if (cleanPassword.length < 4) {
-    return { success: false, error: 'A senha deve conter no mínimo 4 caracteres.' };
+  if (cleanPassword.length < 3) {
+    return { success: false, error: 'A senha deve conter no mínimo 3 caracteres.' };
   }
 
   const accounts = getStoredAccounts();
@@ -138,9 +216,12 @@ export function registerUser(nameInput: string, usernameInput: string, passwordI
   };
 
   accounts.push(newAccount);
+
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(accounts));
+      localStorage.setItem(STORAGE_HAS_CREATED_KEY, 'true');
+      localStorage.setItem(STORAGE_AUTO_LOGIN_KEY, 'true');
     } catch {
       // Ignore
     }
@@ -157,6 +238,10 @@ export function registerUser(nameInput: string, usernameInput: string, passwordI
   return { success: true, user };
 }
 
+/**
+ * Desconecta o usuário atual e desativa temporariamente o auto-login.
+ */
 export function logoutUser(): void {
   setCurrentUser(null);
+  setAutoLoginEnabled(false);
 }
