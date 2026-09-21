@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AccessibilitySettings } from '@/types/shopping';
-import { Volume2, VolumeX, Eye, Sparkles, Volume, Download, Smartphone } from 'lucide-react';
+import { Volume2, VolumeX, Eye, Sparkles, Volume } from 'lucide-react';
 
 interface AccessibilityBarProps {
   settings: AccessibilitySettings;
@@ -11,8 +11,6 @@ interface AccessibilityBarProps {
   isSpeaking: boolean;
   onStopSpeaking: () => void;
   remainingCount: number;
-  onOpenInstallModal?: () => void;
-  isStandalone?: boolean;
 }
 
 export const AccessibilityBar: React.FC<AccessibilityBarProps> = ({
@@ -22,8 +20,6 @@ export const AccessibilityBar: React.FC<AccessibilityBarProps> = ({
   isSpeaking,
   onStopSpeaking,
   remainingCount,
-  onOpenInstallModal,
-  isStandalone = false,
 }) => {
   return (
     <aside
@@ -146,23 +142,6 @@ export const AccessibilityBar: React.FC<AccessibilityBarProps> = ({
                   {remainingCount}
                 </span>
               )}
-            </button>
-          )}
-          {/* Botão de Instalar App no Dispositivo */}
-          {onOpenInstallModal && !isStandalone && (
-            <button
-              id="accessibility-install-app-btn"
-              type="button"
-              onClick={onOpenInstallModal}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs sm:text-sm font-bold transition-all active:scale-95 ${
-                settings.highContrast
-                  ? 'bg-yellow-400 text-black border-yellow-300 font-extrabold'
-                  : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100'
-              }`}
-              title="Instalar aplicativo no seu celular ou computador"
-            >
-              <Download className="w-4 h-4" />
-              <span>Instalar App</span>
             </button>
           )}
         </div>

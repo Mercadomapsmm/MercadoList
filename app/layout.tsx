@@ -20,15 +20,6 @@ export const metadata: Metadata = {
   title: 'Lista de Compras Doméstica',
   description: 'App acessível e eficiente de lista de compras doméstica com comando de voz, fontes ampliadas de alta legibilidade e controle fácil.',
   applicationName: 'Lista de Compras Doméstica',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Compras',
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-  },
   formatDetection: {
     telephone: false,
   },

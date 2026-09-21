@@ -11,13 +11,14 @@ import { ListSelector } from '@/components/ListSelector';
 import { VoiceModal } from '@/components/VoiceModal';
 import { ProductTableModal } from '@/components/ProductTableModal';
 import { PwaRegister } from '@/components/PwaRegister';
-import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
-import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { AuthScreen } from '@/components/AuthScreen';
+import { User } from '@/types/auth';
+import { getCurrentUser, logoutUser } from '@/lib/auth';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
 import { speakListItems, stopSpeaking } from '@/lib/speech';
 import { playCheckSound, playUncheckSound, playCompleteSound } from '@/lib/sound';
-import { Mic, Search, CheckCircle, ShoppingCart, Layers, BookOpen, Download, Smartphone } from 'lucide-react';
+import { Mic, Search, CheckCircle, ShoppingCart, Layers, BookOpen, LogOut, User as UserIcon } from 'lucide-react';
 
 const INITIAL_LISTS: ShoppingList[] = [
   {
@@ -182,6 +183,7 @@ const DEFAULT_SETTINGS: AccessibilitySettings = {
 
 export default function ShoppingListPage() {
   const [hasMounted, setHasMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [lists, setLists] = useState<ShoppingList[]>(INITIAL_LISTS);
   const [activeListId, setActiveListId] = useState<string>('list-supermercado');
   const [settings, setSettings] = useState<AccessibilitySettings>(DEFAULT_SETTINGS);
@@ -190,22 +192,41 @@ export default function ShoppingListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isProductTableModalOpen, setIsProductTableModalOpen] = useState(false);
-  const [isPwaInstallModalOpen, setIsPwaInstallModalOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [hasEnteredApp, setHasEnteredApp] = useState(false);
 
-  // Load from localStorage & check PWA install status on mount only to prevent hydration mismatch
+  // Load from localStorage on mount only to prevent hydration mismatch
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const savedLists = localStorage.getItem('lista_compras_domestica_lists');
-        if (savedLists) {
-          const parsed = JSON.parse(savedLists);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setLists(parsed);
+        const loggedUser = getCurrentUser();
+        if (loggedUser) {
+          setCurrentUser(loggedUser);
+          const userListsKey = `lista_compras_domestica_lists_${loggedUser.id}`;
+          const savedUserLists = localStorage.getItem(userListsKey);
+          if (savedUserLists) {
+            const parsed = JSON.parse(savedUserLists);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLists(parsed);
+            }
+          } else {
+            const savedLists = localStorage.getItem('lista_compras_domestica_lists');
+            if (savedLists) {
+              const parsed = JSON.parse(savedLists);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setLists(parsed);
+              }
+            }
+          }
+        } else {
+          const savedLists = localStorage.getItem('lista_compras_domestica_lists');
+          if (savedLists) {
+            const parsed = JSON.parse(savedLists);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setLists(parsed);
+            }
           }
         }
+
         const savedActiveId = localStorage.getItem('lista_compras_domestica_active_id');
         if (savedActiveId) {
           setActiveListId(savedActiveId);
@@ -213,18 +234,6 @@ export default function ShoppingListPage() {
         const savedSettings = localStorage.getItem('lista_compras_domestica_settings');
         if (savedSettings) {
           setSettings(JSON.parse(savedSettings));
-        }
-
-        // Check if running as standalone PWA
-        const standalone =
-          window.matchMedia('(display-mode: standalone)').matches ||
-          (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-        setIsStandalone(standalone);
-
-        // Se estiver em modo standalone ou o usuário já liberou a entrada na sessão
-        const alreadyEntered = sessionStorage.getItem('pwa_has_entered_app') === 'true';
-        if (standalone || alreadyEntered) {
-          setHasEnteredApp(true);
         }
       } catch {
         // Ignore
@@ -239,26 +248,36 @@ export default function ShoppingListPage() {
   useEffect(() => {
     if (!hasMounted) return;
     try {
+      if (currentUser) {
+        localStorage.setItem(`lista_compras_domestica_lists_${currentUser.id}`, JSON.stringify(lists));
+      }
       localStorage.setItem('lista_compras_domestica_lists', JSON.stringify(lists));
       localStorage.setItem('lista_compras_domestica_settings', JSON.stringify(settings));
       localStorage.setItem('lista_compras_domestica_active_id', activeListId);
     } catch {
       // Ignore
     }
-  }, [lists, settings, activeListId, hasMounted]);
+  }, [lists, settings, activeListId, hasMounted, currentUser]);
 
-  const handleEnterApp = () => {
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
     try {
-      sessionStorage.setItem('pwa_has_entered_app', 'true');
+      const userListsKey = `lista_compras_domestica_lists_${user.id}`;
+      const savedUserLists = localStorage.getItem(userListsKey);
+      if (savedUserLists) {
+        const parsed = JSON.parse(savedUserLists);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setLists(parsed);
+        }
+      }
     } catch {
       // Ignore
     }
-    setHasEnteredApp(true);
-    setIsPwaInstallModalOpen(false);
   };
 
-  const handleClosePwaModal = () => {
-    setIsPwaInstallModalOpen(false);
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
   };
 
   const activeList = lists.find(l => l.id === activeListId) || lists[0];
@@ -502,27 +521,25 @@ export default function ShoppingListPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white p-4">
         <div className="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 animate-pulse mb-3">
-          <Smartphone className="w-8 h-8" />
+          <ShoppingCart className="w-8 h-8" />
         </div>
         <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Carregando Lista de Compras...</p>
       </div>
     );
   }
 
-  // Solicitar a instalação ANTES de apresentar o aplicativo
-  // Se o aplicativo ainda não foi aberto em modo standalone (PWA instalado) e o usuário ainda não confirmou a entrada:
-  if (!isStandalone && !hasEnteredApp) {
+  // Se o usuário ainda não estiver logado, exibe a tela de login/cadastro
+  if (!currentUser) {
     return (
-      <div className={settings.highContrast ? 'contrast-high' : ''}>
+      <>
         <PwaRegister />
-        <OfflineIndicator />
-        <PwaInstallPrompt
-          isOpen={true}
-          isGateScreen={true}
+        <AuthScreen
+          onLoginSuccess={handleLoginSuccess}
           highContrast={settings.highContrast}
-          onClose={handleEnterApp}
+          onToggleHighContrast={() => setSettings(s => ({ ...s, highContrast: !s.highContrast }))}
+          soundEnabled={settings.soundFeedback}
         />
-      </div>
+      </>
     );
   }
 
@@ -544,8 +561,6 @@ export default function ShoppingListPage() {
         isSpeaking={isSpeaking}
         onStopSpeaking={handleStopSpeaking}
         remainingCount={pendingItems.length}
-        onOpenInstallModal={() => setIsPwaInstallModalOpen(true)}
-        isStandalone={isStandalone}
       />
 
       {/* Main Container */}
@@ -566,31 +581,48 @@ export default function ShoppingListPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-            {/* Botão de Instalação PWA para qualquer dispositivo */}
-            {!isStandalone && (
-              <button
-                id="header-install-app-button"
-                type="button"
-                onClick={() => setIsPwaInstallModalOpen(true)}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95 ${
-                  settings.highContrast
-                    ? 'bg-yellow-400 text-black border-yellow-300 ring-2 ring-yellow-300 font-extrabold'
-                    : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
-                }`}
-                title="Instalar este aplicativo no seu celular ou computador"
-              >
-                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Instalar App</span>
-              </button>
-            )}
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
+            {/* Usuário Conectado */}
+            <div
+              id="user-profile-badge"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-bold ${
+                settings.highContrast
+                  ? 'bg-zinc-900 border-yellow-400 text-yellow-400'
+                  : 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100'
+              }`}
+              title={`Conectado como ${currentUser.name} (@${currentUser.username})`}
+            >
+              <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
+                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span>{currentUser.name}</span>
+                <span className="text-[10px] opacity-70 font-normal">@{currentUser.username}</span>
+              </div>
+            </div>
+
+            {/* Sair da Conta */}
+            <button
+              id="header-logout-btn"
+              type="button"
+              onClick={handleLogout}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs sm:text-sm font-bold transition-all active:scale-95 ${
+                settings.highContrast
+                  ? 'bg-zinc-900 border-yellow-400 text-white hover:bg-zinc-800'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 hover:border-rose-200'
+              }`}
+              title="Sair desta conta"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sair</span>
+            </button>
 
             {/* Quick Voice Command CTA Banner */}
             <button
               id="header-voice-cta-button"
               type="button"
               onClick={() => setIsVoiceModalOpen(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
               title="Ditar itens para a lista usando a voz"
             >
               <Mic className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
@@ -806,18 +838,8 @@ export default function ShoppingListPage() {
         highContrast={settings.highContrast}
       />
 
-      {/* PWA Service Worker Auto-Registration */}
+      {/* Service Worker Cleanup (Desregistra qualquer versão anterior de PWA) */}
       <PwaRegister />
-
-      {/* Offline Connectivity Status Toast */}
-      <OfflineIndicator />
-
-      {/* PWA Installation Prompt Gate for all devices & OS versions */}
-      <PwaInstallPrompt
-        isOpen={isPwaInstallModalOpen}
-        onClose={handleClosePwaModal}
-        highContrast={settings.highContrast}
-      />
     </div>
   );
 }

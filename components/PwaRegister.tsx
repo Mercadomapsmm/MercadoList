@@ -2,25 +2,30 @@
 
 import { useEffect } from 'react';
 
+/**
+ * Componente de limpeza para desativar qualquer resquício de PWA / Service Worker antigo.
+ */
 export function PwaRegister() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const register = () => {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((registration) => {
-            console.log('PWA ServiceWorker registrado com sucesso:', registration.scope);
-          })
-          .catch((error) => {
-            console.warn('Falha ao registrar PWA ServiceWorker:', error);
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().then((success) => {
+            if (success) {
+              console.log('ServiceWorker PWA desregistrado com sucesso');
+            }
           });
-      };
+        }
+      }).catch(() => {
+        // Ignore
+      });
 
-      if (document.readyState === 'complete') {
-        register();
-      } else {
-        window.addEventListener('load', register);
-        return () => window.removeEventListener('load', register);
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          names.forEach((name) => caches.delete(name));
+        }).catch(() => {
+          // Ignore
+        });
       }
     }
   }, []);
