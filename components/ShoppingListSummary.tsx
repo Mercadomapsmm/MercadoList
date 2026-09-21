@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ShoppingItem, FontSizeOption } from '@/types/shopping';
-import { CheckCircle2, ShoppingBag, Trash2, Share2, Volume2, Check, Filter } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, Trash2, Share2, Volume2, Check, Filter, History } from 'lucide-react';
 
 interface ShoppingListSummaryProps {
   items: ShoppingItem[];
@@ -13,6 +13,8 @@ interface ShoppingListSummaryProps {
   listName: string;
   fontSize: FontSizeOption;
   highContrast: boolean;
+  onOpenShare?: () => void;
+  onOpenHistory?: () => void;
 }
 
 export const ShoppingListSummary: React.FC<ShoppingListSummaryProps> = ({
@@ -24,6 +26,8 @@ export const ShoppingListSummary: React.FC<ShoppingListSummaryProps> = ({
   listName,
   fontSize,
   highContrast,
+  onOpenShare,
+  onOpenHistory,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -48,6 +52,11 @@ export const ShoppingListSummary: React.FC<ShoppingListSummaryProps> = ({
   }, 0);
 
   const handleShareList = () => {
+    if (onOpenShare) {
+      onOpenShare();
+      return;
+    }
+
     if (items.length === 0) return;
 
     let text = `🛒 *Lista de Compras: ${listName}*\n\n`;
@@ -177,8 +186,21 @@ export const ShoppingListSummary: React.FC<ShoppingListSummaryProps> = ({
           </button>
         </div>
 
-        {/* Action Buttons: Share & Clear */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        {/* Action Buttons: History, Share & Clear */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          {onOpenHistory && (
+            <button
+              id="summary-open-history-button"
+              type="button"
+              onClick={onOpenHistory}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold hover:bg-amber-100 text-xs sm:text-sm transition-transform active:scale-95"
+              title="Abrir histórico de compras e itens recorrentes"
+            >
+              <History className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>Histórico</span>
+            </button>
+          )}
+
           <button
             id="share-list-button"
             type="button"

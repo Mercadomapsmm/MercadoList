@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Mic, Minus, Tag, DollarSign, ChevronDown, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Mic, Minus, Tag, DollarSign, ChevronDown } from 'lucide-react';
 import { CategoryId, UnitType, ShoppingItem } from '@/types/shopping';
-import { CATEGORIES, UNIT_OPTIONS, QUICK_ADD_ITEMS, detectCategory } from '@/lib/categories';
+import { CATEGORIES, UNIT_OPTIONS, detectCategory } from '@/lib/categories';
 import { TABELA_PRODUTOS_CATEGORIAS, normalizarNome } from '@/lib/productTable';
 import { playAddSound } from '@/lib/sound';
 
@@ -72,16 +72,6 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
     setUnit('un');
     setCategory('outros');
     setEstimatedPrice('');
-  };
-
-  const handleQuickAdd = (quick: typeof QUICK_ADD_ITEMS[0]) => {
-    onAddItem({
-      name: quick.name,
-      quantity: quick.quantity,
-      unit: quick.unit,
-      category: quick.category,
-    });
-    if (soundEnabled) playAddSound();
   };
 
   const handleQuantityIncrement = () => {
@@ -271,32 +261,6 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
             </span>
           </div>
         )}
-
-        {/* Quick Add Suggestions Carousel / Chips */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Atalhos Rápidos (1 Toque):
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
-            {QUICK_ADD_ITEMS.slice(0, 10).map((quick) => {
-              const cat = CATEGORIES[quick.category];
-              return (
-                <button
-                  key={quick.name}
-                  type="button"
-                  onClick={() => handleQuickAdd(quick)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-slate-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold whitespace-nowrap transition-transform active:scale-95"
-                  title={`Adicionar ${quick.quantity} ${quick.unit} de ${quick.name}`}
-                >
-                  <span>{quick.name}</span>
-                  <Plus className="w-3 h-3 text-emerald-600" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </form>
     </section>
   );

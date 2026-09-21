@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { ShoppingList, ShoppingItem, AccessibilitySettings, CategoryId } from '@/types/shopping';
+import { ShoppingList, ShoppingItem, AccessibilitySettings, CategoryId, HistoryItem } from '@/types/shopping';
 import { AccessibilityBar } from '@/components/AccessibilityBar';
 import { AddItemBar } from '@/components/AddItemBar';
 import { ItemRow } from '@/components/ItemRow';
 import { ShoppingListSummary } from '@/components/ShoppingListSummary';
 import { ListSelector } from '@/components/ListSelector';
 import { VoiceModal } from '@/components/VoiceModal';
-import { ProductTableModal } from '@/components/ProductTableModal';
+import { ShareModal } from '@/components/ShareModal';
+import { HistorySection } from '@/components/HistorySection';
 import { PwaRegister } from '@/components/PwaRegister';
 import { AuthScreen } from '@/components/AuthScreen';
 import { User } from '@/types/auth';
@@ -17,8 +18,16 @@ import { getCurrentUser, logoutUser, resolveAutoLoginUser } from '@/lib/auth';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
 import { speakListItems, stopSpeaking } from '@/lib/speech';
-import { playCheckSound, playUncheckSound, playCompleteSound } from '@/lib/sound';
-import { Mic, Search, CheckCircle, ShoppingCart, Layers, BookOpen, LogOut, User as UserIcon } from 'lucide-react';
+import { playCheckSound, playUncheckSound, playCompleteSound, playAddSound } from '@/lib/sound';
+import { decodeListsFromUrl } from '@/lib/sharing';
+import {
+  loadHistoryFromStorage,
+  saveHistoryToStorage,
+  addItemToHistory,
+  addMultipleItemsToHistory,
+  removeItemFromHistory,
+} from '@/lib/history';
+import { Mic, Search, CheckCircle, ShoppingCart, Layers, LogOut, Share2, History, User as UserIcon } from 'lucide-react';
 
 const INITIAL_LISTS: ShoppingList[] = [
   {
@@ -187,11 +196,16 @@ export default function ShoppingListPage() {
   const [lists, setLists] = useState<ShoppingList[]>(INITIAL_LISTS);
   const [activeListId, setActiveListId] = useState<string>('list-supermercado');
   const [settings, setSettings] = useState<AccessibilitySettings>(DEFAULT_SETTINGS);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'bought'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  const [isProductTableModalOpen, setIsProductTableModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharedImportPrompt, setSharedImportPrompt] = useState<{
+    lists: ShoppingList[];
+    sharedByName: string;
+  } | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Load from localStorage on mount only to prevent hydration mismatch
@@ -222,6 +236,10 @@ export default function ShoppingListPage() {
           setCurrentUser(null);
         }
 
+        // Carrega histórico do usuário logado ou o histórico padrão
+        const userHistory = loadHistoryFromStorage(autoUser ? autoUser.username : undefined);
+        setHistory(userHistory);
+
         const savedActiveId = localStorage.getItem('lista_compras_domestica_active_id');
         if (savedActiveId) {
           setActiveListId(savedActiveId);
@@ -229,6 +247,18 @@ export default function ShoppingListPage() {
         const savedSettings = localStorage.getItem('lista_compras_domestica_settings');
         if (savedSettings) {
           setSettings(JSON.parse(savedSettings));
+        }
+
+        // Verifica se há dados de listas compartilhadas na URL (?shared_data=)
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const sharedData = params.get('shared_data');
+          if (sharedData) {
+            const decoded = decodeListsFromUrl(sharedData);
+            if (decoded && decoded.lists.length > 0) {
+              setSharedImportPrompt(decoded);
+            }
+          }
         }
       } catch {
         // Ignore
@@ -254,6 +284,14 @@ export default function ShoppingListPage() {
     }
   }, [lists, settings, activeListId, hasMounted, currentUser]);
 
+  const updateHistoryState = (updater: (prev: HistoryItem[]) => HistoryItem[]) => {
+    setHistory(prev => {
+      const next = updater(prev);
+      saveHistoryToStorage(next, currentUser?.username);
+      return next;
+    });
+  };
+
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
     try {
@@ -265,6 +303,8 @@ export default function ShoppingListPage() {
           setLists(parsed);
         }
       }
+      const userHistory = loadHistoryFromStorage(user.username);
+      setHistory(userHistory);
     } catch {
       // Ignore
     }
@@ -273,6 +313,8 @@ export default function ShoppingListPage() {
   const handleLogout = () => {
     logoutUser();
     setCurrentUser(null);
+    const defaultHistory = loadHistoryFromStorage();
+    setHistory(defaultHistory);
   };
 
   const activeList = lists.find(l => l.id === activeListId) || lists[0];
@@ -445,6 +487,62 @@ export default function ShoppingListPage() {
     );
   };
 
+  const handleUpdateCategory = (itemId: string, newCategory: CategoryId) => {
+    setLists(prev =>
+      prev.map(l => {
+        if (l.id === activeListId) {
+          return {
+            ...l,
+            items: l.items.map(item =>
+              item.id === itemId ? { ...item, category: newCategory } : item
+            ),
+            updatedAt: Date.now(),
+          };
+        }
+        return l;
+      })
+    );
+  };
+
+  const handleUpdatePrice = (itemId: string, newPrice: number) => {
+    setLists(prev =>
+      prev.map(l => {
+        if (l.id === activeListId) {
+          return {
+            ...l,
+            items: l.items.map(item =>
+              item.id === itemId ? { ...item, estimatedPrice: Math.max(0, newPrice) } : item
+            ),
+            updatedAt: Date.now(),
+          };
+        }
+        return l;
+      })
+    );
+  };
+
+  const handleConfirmSharedImport = () => {
+    if (!sharedImportPrompt) return;
+    setLists(sharedImportPrompt.lists);
+    if (sharedImportPrompt.lists[0]) {
+      setActiveListId(sharedImportPrompt.lists[0].id);
+    }
+    setSharedImportPrompt(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('shared_data');
+      window.history.replaceState({}, document.title, url.pathname);
+    }
+    if (settings.soundFeedback) playAddSound();
+  };
+
+  const handleImportLists = (newLists: ShoppingList[]) => {
+    setLists(newLists);
+    if (newLists[0]) {
+      setActiveListId(newLists[0].id);
+    }
+  };
+
   const handleClearBought = () => {
     if (!confirm('Deseja remover todos os itens que já foram colocados no carrinho?')) return;
     setLists(prev =>
@@ -560,6 +658,55 @@ export default function ShoppingListPage() {
 
       {/* Main Container */}
       <main className={`max-w-4xl mx-auto ${containerPaddingClass} space-y-5 sm:space-y-6`}>
+        {/* Banner de Importação de Listas Compartilhadas Recebidas */}
+        {sharedImportPrompt && (
+          <div
+            id="shared-list-import-banner"
+            className="p-4 rounded-2xl bg-emerald-700 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base">
+                  Listas de Compras Compartilhadas Recebidas!
+                </h3>
+                <p className="text-xs text-emerald-100">
+                  {sharedImportPrompt.sharedByName} compartilhou {sharedImportPrompt.lists.length}{' '}
+                  {sharedImportPrompt.lists.length === 1 ? 'lista' : 'listas'} com{' '}
+                  {sharedImportPrompt.lists.reduce((acc, l) => acc + l.items.length, 0)} itens com você.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                id="confirm-import-shared-btn"
+                type="button"
+                onClick={handleConfirmSharedImport}
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-white text-emerald-900 font-extrabold text-xs sm:text-sm hover:bg-emerald-50 transition-all shadow-xs active:scale-95"
+              >
+                Importar para o Meu App
+              </button>
+              <button
+                id="cancel-import-shared-btn"
+                type="button"
+                onClick={() => {
+                  setSharedImportPrompt(null);
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('shared_data');
+                    window.history.replaceState({}, document.title, url.pathname);
+                  }
+                }}
+                className="px-3 py-2 rounded-xl text-emerald-200 hover:text-white hover:bg-white/10 text-xs sm:text-sm font-semibold transition-colors"
+              >
+                Ignorar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* App Header */}
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -612,6 +759,18 @@ export default function ShoppingListPage() {
               <span>Sair</span>
             </button>
 
+            {/* Compartilhar o Aplicativo e Listas */}
+            <button
+              id="header-share-app-btn"
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
+              title="Compartilhar o aplicativo e suas listas com outras pessoas"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Compartilhar</span>
+            </button>
+
             {/* Quick Voice Command CTA Banner */}
             <button
               id="header-voice-cta-button"
@@ -658,6 +817,7 @@ export default function ShoppingListPage() {
             listName={activeList.name}
             fontSize={settings.fontSize}
             highContrast={settings.highContrast}
+            onOpenShare={() => setIsShareModalOpen(true)}
           />
         )}
 
@@ -693,22 +853,6 @@ export default function ShoppingListPage() {
           >
             <Layers className="w-4 h-4" />
             <span>{settings.groupByCategory ? 'Agrupado por Categorias' : 'Agrupar por Categorias'}</span>
-          </button>
-
-          {/* Botão para ver tabela de produtos e classificação das categorias */}
-          <button
-            id="open-product-table-modal-btn"
-            type="button"
-            onClick={() => setIsProductTableModalOpen(true)}
-            className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all shrink-0 active:scale-95 ${
-              settings.highContrast
-                ? 'bg-black text-yellow-300 border-yellow-400 hover:bg-zinc-900'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="Ver tabela completa com nome dos produtos e classificação por categorias"
-          >
-            <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Tabela de Produtos</span>
           </button>
         </div>
 
@@ -771,6 +915,8 @@ export default function ShoppingListPage() {
                           onToggleBought={handleToggleBought}
                           onDelete={handleDeleteItem}
                           onUpdateQuantity={handleUpdateQuantity}
+                          onUpdateCategory={handleUpdateCategory}
+                          onUpdatePrice={handleUpdatePrice}
                           fontSize={settings.fontSize}
                           highContrast={settings.highContrast}
                         />
@@ -789,6 +935,8 @@ export default function ShoppingListPage() {
                   onToggleBought={handleToggleBought}
                   onDelete={handleDeleteItem}
                   onUpdateQuantity={handleUpdateQuantity}
+                  onUpdateCategory={handleUpdateCategory}
+                  onUpdatePrice={handleUpdatePrice}
                   fontSize={settings.fontSize}
                   highContrast={settings.highContrast}
                 />
@@ -818,19 +966,16 @@ export default function ShoppingListPage() {
         soundEnabled={settings.soundFeedback}
       />
 
-      {/* Tabela de Produtos e Classificação das Categorias */}
-      <ProductTableModal
-        isOpen={isProductTableModalOpen}
-        onClose={() => setIsProductTableModalOpen(false)}
-        onAddProduct={(name, category, unit) => {
-          handleAddItem({
-            name,
-            category,
-            quantity: 1,
-            unit: (unit as any) || 'un',
-          });
-        }}
+      {/* Modal de Compartilhamento do Aplicativo & Listas */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        lists={lists}
+        activeList={activeList || lists[0]}
+        userName={currentUser?.name || currentUser?.username || 'Usuário'}
         highContrast={settings.highContrast}
+        soundEnabled={settings.soundFeedback}
+        onImportLists={handleImportLists}
       />
 
       {/* Service Worker Cleanup (Desregistra qualquer versão anterior de PWA) */}

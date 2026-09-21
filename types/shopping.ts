@@ -43,6 +43,19 @@ export interface ShoppingList {
   updatedAt: number;
 }
 
+export interface HistoryItem {
+  id: string;
+  name: string;
+  category: CategoryId;
+  quantity: number;
+  unit: UnitType;
+  estimatedPrice?: number;
+  lastAction: 'comprado' | 'removido';
+  timestamp: number;
+  timesUsed: number;
+  notes?: string;
+}
+
 export type FontSizeOption = 'normal' | 'large' | 'extra';
 
 export interface AccessibilitySettings {
