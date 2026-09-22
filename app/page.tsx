@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { ShoppingList, ShoppingItem, AccessibilitySettings, CategoryId, HistoryItem } from '@/types/shopping';
+import { ShoppingList, ShoppingItem, AccessibilitySettings, CategoryId } from '@/types/shopping';
 import { AccessibilityBar } from '@/components/AccessibilityBar';
 import { AddItemBar } from '@/components/AddItemBar';
 import { ItemRow } from '@/components/ItemRow';
@@ -10,25 +10,14 @@ import { ShoppingListSummary } from '@/components/ShoppingListSummary';
 import { ListSelector } from '@/components/ListSelector';
 import { VoiceModal } from '@/components/VoiceModal';
 import { ShareModal } from '@/components/ShareModal';
-import { HistorySection } from '@/components/HistorySection';
 import { MercadoLivreBanner } from '@/components/MercadoLivreBanner';
 import { PwaRegister } from '@/components/PwaRegister';
-import { AuthScreen } from '@/components/AuthScreen';
-import { User } from '@/types/auth';
-import { getCurrentUser, logoutUser, resolveAutoLoginUser } from '@/lib/auth';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
 import { speakListItems, stopSpeaking } from '@/lib/speech';
 import { playCheckSound, playUncheckSound, playCompleteSound, playAddSound } from '@/lib/sound';
 import { decodeListsFromUrl } from '@/lib/sharing';
-import {
-  loadHistoryFromStorage,
-  saveHistoryToStorage,
-  addItemToHistory,
-  addMultipleItemsToHistory,
-  removeItemFromHistory,
-} from '@/lib/history';
-import { Mic, Search, CheckCircle, ShoppingCart, Layers, LogOut, Share2, History, User as UserIcon } from 'lucide-react';
+import { Mic, Search, CheckCircle, ShoppingCart, Layers, Share2 } from 'lucide-react';
 
 const INITIAL_LISTS: ShoppingList[] = [
   {
@@ -193,17 +182,14 @@ const DEFAULT_SETTINGS: AccessibilitySettings = {
 
 export default function ShoppingListPage() {
   const [hasMounted, setHasMounted] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [lists, setLists] = useState<ShoppingList[]>(INITIAL_LISTS);
   const [activeListId, setActiveListId] = useState<string>('list-supermercado');
   const [settings, setSettings] = useState<AccessibilitySettings>(DEFAULT_SETTINGS);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'bought'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [sharedImportPrompt, setSharedImportPrompt] = useState<{
     lists: ShoppingList[];
     sharedByName: string;
@@ -214,33 +200,13 @@ export default function ShoppingListPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        // Login automático se o usuário já criou usuário e senha anteriormente
-        const autoUser = resolveAutoLoginUser();
-        if (autoUser) {
-          setCurrentUser(autoUser);
-          const userListsKey = `lista_compras_domestica_lists_${autoUser.id}`;
-          const savedUserLists = localStorage.getItem(userListsKey);
-          if (savedUserLists) {
-            const parsed = JSON.parse(savedUserLists);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setLists(parsed);
-            }
-          } else {
-            const savedLists = localStorage.getItem('lista_compras_domestica_lists');
-            if (savedLists) {
-              const parsed = JSON.parse(savedLists);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setLists(parsed);
-              }
-            }
+        const savedLists = localStorage.getItem('lista_compras_domestica_lists');
+        if (savedLists) {
+          const parsed = JSON.parse(savedLists);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLists(parsed);
           }
-        } else {
-          setCurrentUser(null);
         }
-
-        // Carrega histórico do usuário logado ou o histórico padrão
-        const userHistory = loadHistoryFromStorage(autoUser ? autoUser.username : undefined);
-        setHistory(userHistory);
 
         const savedActiveId = localStorage.getItem('lista_compras_domestica_active_id');
         if (savedActiveId) {
@@ -275,49 +241,13 @@ export default function ShoppingListPage() {
   useEffect(() => {
     if (!hasMounted) return;
     try {
-      if (currentUser) {
-        localStorage.setItem(`lista_compras_domestica_lists_${currentUser.id}`, JSON.stringify(lists));
-      }
       localStorage.setItem('lista_compras_domestica_lists', JSON.stringify(lists));
       localStorage.setItem('lista_compras_domestica_settings', JSON.stringify(settings));
       localStorage.setItem('lista_compras_domestica_active_id', activeListId);
     } catch {
       // Ignore
     }
-  }, [lists, settings, activeListId, hasMounted, currentUser]);
-
-  const updateHistoryState = (updater: (prev: HistoryItem[]) => HistoryItem[]) => {
-    setHistory(prev => {
-      const next = updater(prev);
-      saveHistoryToStorage(next, currentUser?.username);
-      return next;
-    });
-  };
-
-  const handleLoginSuccess = (user: User) => {
-    setCurrentUser(user);
-    try {
-      const userListsKey = `lista_compras_domestica_lists_${user.id}`;
-      const savedUserLists = localStorage.getItem(userListsKey);
-      if (savedUserLists) {
-        const parsed = JSON.parse(savedUserLists);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setLists(parsed);
-        }
-      }
-      const userHistory = loadHistoryFromStorage(user.username);
-      setHistory(userHistory);
-    } catch {
-      // Ignore
-    }
-  };
-
-  const handleLogout = () => {
-    logoutUser();
-    setCurrentUser(null);
-    const defaultHistory = loadHistoryFromStorage();
-    setHistory(defaultHistory);
-  };
+  }, [lists, settings, activeListId, hasMounted]);
 
   const activeList = lists.find(l => l.id === activeListId) || lists[0];
 
@@ -426,11 +356,6 @@ export default function ShoppingListPage() {
                   playUncheckSound();
                 }
               }
-              if (newBought) {
-                const updatedHist = addItemToHistory(history, item, 'comprado');
-                setHistory(updatedHist);
-                saveHistoryToStorage(updatedHist, currentUser?.username);
-              }
               return { ...item, isBought: newBought };
             }
             return item;
@@ -463,13 +388,6 @@ export default function ShoppingListPage() {
   };
 
   const handleDeleteItem = (itemId: string) => {
-    const list = lists.find(l => l.id === activeListId);
-    const itemToDelete = list?.items.find(i => i.id === itemId);
-    if (itemToDelete) {
-      const updatedHist = addItemToHistory(history, itemToDelete, 'removido');
-      setHistory(updatedHist);
-      saveHistoryToStorage(updatedHist, currentUser?.username);
-    }
     setLists(prev =>
       prev.map(l => {
         if (l.id === activeListId) {
@@ -559,13 +477,6 @@ export default function ShoppingListPage() {
 
   const handleClearBought = () => {
     if (!confirm('Deseja remover todos os itens que já foram colocados no carrinho?')) return;
-    const list = lists.find(l => l.id === activeListId);
-    const boughtOnActive = list?.items.filter(i => i.isBought) || [];
-    if (boughtOnActive.length > 0) {
-      const updatedHist = addMultipleItemsToHistory(history, boughtOnActive, 'comprado');
-      setHistory(updatedHist);
-      saveHistoryToStorage(updatedHist, currentUser?.username);
-    }
     setLists(prev =>
       prev.map(l => {
         if (l.id === activeListId) {
@@ -578,31 +489,6 @@ export default function ShoppingListPage() {
         return l;
       })
     );
-  };
-
-  const handleAddItemFromHistory = (histItem: HistoryItem) => {
-    handleAddItem({
-      name: histItem.name,
-      quantity: histItem.quantity || 1,
-      unit: histItem.unit || 'un',
-      category: histItem.category,
-      estimatedPrice: histItem.estimatedPrice,
-    });
-    const updated = addItemToHistory(history, histItem, 'comprado');
-    setHistory(updated);
-    saveHistoryToStorage(updated, currentUser?.username);
-  };
-
-  const handleRemoveFromHistory = (id: string) => {
-    const updated = removeItemFromHistory(history, id);
-    setHistory(updated);
-    saveHistoryToStorage(updated, currentUser?.username);
-  };
-
-  const handleClearHistory = () => {
-    if (!confirm('Deseja limpar todo o histórico de compras?')) return;
-    setHistory([]);
-    saveHistoryToStorage([], currentUser?.username);
   };
 
   const handleReadList = () => {
@@ -664,21 +550,6 @@ export default function ShoppingListPage() {
         </div>
         <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Carregando Lista de Compras...</p>
       </div>
-    );
-  }
-
-  // Se o usuário ainda não estiver logado, exibe a tela de login/cadastro
-  if (!currentUser) {
-    return (
-      <>
-        <PwaRegister />
-        <AuthScreen
-          onLoginSuccess={handleLoginSuccess}
-          highContrast={settings.highContrast}
-          onToggleHighContrast={() => setSettings(s => ({ ...s, highContrast: !s.highContrast }))}
-          soundEnabled={settings.soundFeedback}
-        />
-      </>
     );
   }
 
@@ -773,41 +644,6 @@ export default function ShoppingListPage() {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
-            {/* Usuário Conectado */}
-            <div
-              id="user-profile-badge"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-bold ${
-                settings.highContrast
-                  ? 'bg-zinc-900 border-yellow-400 text-yellow-400'
-                  : 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100'
-              }`}
-              title={`Conectado como ${currentUser.name} (@${currentUser.username})`}
-            >
-              <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
-                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div className="flex flex-col text-left leading-tight">
-                <span>{currentUser.name}</span>
-                <span className="text-[10px] opacity-70 font-normal">@{currentUser.username}</span>
-              </div>
-            </div>
-
-            {/* Sair da Conta */}
-            <button
-              id="header-logout-btn"
-              type="button"
-              onClick={handleLogout}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs sm:text-sm font-bold transition-all active:scale-95 ${
-                settings.highContrast
-                  ? 'bg-zinc-900 border-yellow-400 text-white hover:bg-zinc-800'
-                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 hover:border-rose-200'
-              }`}
-              title="Sair desta conta"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sair</span>
-            </button>
-
             {/* Compartilhar o Aplicativo e Listas */}
             <button
               id="header-share-app-btn"
@@ -867,21 +703,6 @@ export default function ShoppingListPage() {
             fontSize={settings.fontSize}
             highContrast={settings.highContrast}
             onOpenShare={() => setIsShareModalOpen(true)}
-            onOpenHistory={() => setShowHistory(prev => !prev)}
-          />
-        )}
-
-        {/* Seção Histórico de Itens Recorrentes */}
-        {showHistory && (
-          <HistorySection
-            history={history}
-            activeListItems={activeList?.items || []}
-            onAddItemToList={handleAddItemFromHistory}
-            onRemoveFromHistory={handleRemoveFromHistory}
-            onClearHistory={handleClearHistory}
-            fontSize={settings.fontSize}
-            highContrast={settings.highContrast}
-            soundEnabled={settings.soundFeedback}
           />
         )}
 
@@ -1029,7 +850,7 @@ export default function ShoppingListPage() {
         onClose={() => setIsShareModalOpen(false)}
         lists={lists}
         activeList={activeList || lists[0]}
-        userName={currentUser?.name || currentUser?.username || 'Usuário'}
+        userName="Usuário"
         highContrast={settings.highContrast}
         soundEnabled={settings.soundFeedback}
         onImportLists={handleImportLists}

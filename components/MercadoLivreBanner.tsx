@@ -16,7 +16,7 @@ export const MercadoLivreBanner: React.FC<MercadoLivreBannerProps> = ({
     <div
       id={`mercado-livre-banner-${position}`}
       aria-label="Anúncio Mercado Livre: Relógio Masculino em Oferta"
-      className={`w-full rounded-xl overflow-hidden border transition-all ${
+      className={`w-full rounded-xl overflow-hidden border transition-all animate-gentle-blink ${
         highContrast
           ? 'bg-black text-white border-2 border-yellow-400'
           : 'bg-white dark:bg-slate-900 border-[#FFE600] dark:border-amber-500/40 shadow-xs hover:shadow-sm'
@@ -30,7 +30,7 @@ export const MercadoLivreBanner: React.FC<MercadoLivreBannerProps> = ({
           </span>
           <span className="text-[#2D3277] font-black tracking-tight">mercado livre</span>
           <span className="hidden sm:inline text-[#2D3277]/40">|</span>
-          <span className="hidden sm:inline-flex items-center gap-0.5 text-[#2D3277] bg-white/70 px-1.5 py-0.5 rounded text-[10px] font-extrabold">
+          <span className="hidden sm:inline-flex items-center gap-0.5 text-[#2D3277] bg-white/70 px-1.5 py-0.5 rounded text-[10px] font-extrabold animate-pulse">
             <Zap className="w-2.5 h-2.5 fill-[#2D3277] text-[#2D3277]" />
             OFERTA DO DIA
           </span>
