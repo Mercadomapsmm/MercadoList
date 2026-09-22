@@ -111,8 +111,12 @@ export const ListSelector: React.FC<ListSelectorProps> = ({
       className="space-y-2"
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-          <List className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <h2 className={`text-xs sm:text-sm font-black tracking-wider uppercase flex items-center gap-1.5 ${
+          highContrast || (contrastTheme && contrastTheme !== 'padrao')
+            ? activeTheme.titleColor
+            : 'text-slate-600 dark:text-slate-400'
+        }`}>
+          <List className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
           <span>Suas Listas de Compras</span>
         </h2>
 
@@ -121,7 +125,11 @@ export const ListSelector: React.FC<ListSelectorProps> = ({
             id="create-new-list-button"
             type="button"
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs sm:text-sm font-bold transition-colors"
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95 ${
+              highContrast || (contrastTheme && contrastTheme !== 'padrao')
+                ? `${activeTheme.bgButtonPrimary} ${activeTheme.textButtonPrimary}`
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Nova Lista</span>

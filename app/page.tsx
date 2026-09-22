@@ -582,12 +582,8 @@ export default function ShoppingListPage() {
       suppressHydrationWarning
       className={`min-h-screen transition-colors ${activeTheme.bgPage}`}
     >
-      {/* Área Fixa Superior: SOMENTE a área da imagem/banner fica fixa */}
-      <div
-        id="fixed-top-image-area"
-        className={`sticky top-0 z-40 w-full transition-colors border-b shadow-sm ${activeTheme.bgStickyHeader} ${activeTheme.borderStickyHeader}`}
-      >
-        {/* Banner Mercado Livre Superior */}
+      {/* Banner Mercado Livre Superior */}
+      <div id="top-banner-wrapper" className="w-full">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 py-1.5">
           <MercadoLivreBanner position="top" highContrast={settings.highContrast} />
         </div>
@@ -604,7 +600,7 @@ export default function ShoppingListPage() {
       />
 
       {/* Header Principal do App com Título sempre em Destaque e Ações */}
-      <header className="max-w-4xl mx-auto px-3 sm:px-4 pt-3 pb-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <header className="max-w-4xl mx-auto px-3 sm:px-4 pt-3 pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span
             className={`w-2.5 sm:w-3 h-8 sm:h-9 rounded-full ${activeTheme.accentBar}`}
@@ -644,6 +640,37 @@ export default function ShoppingListPage() {
           </button>
         </div>
       </header>
+
+      {/* ÁREA FIXA NA TELA CONFORME IMAGEM INFORMADA (ListSelector + AddItemBar) */}
+      <div
+        id="fixed-screen-area"
+        className={`sticky top-0 z-30 w-full transition-colors border-b shadow-md backdrop-blur-md ${activeTheme.bgStickyHeader} ${activeTheme.borderStickyHeader}`}
+      >
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 space-y-2.5">
+          {/* List Navigation Tabs */}
+          <ListSelector
+            lists={lists}
+            activeListId={activeListId}
+            onSelectList={handleSelectList}
+            onCreateList={handleCreateList}
+            onDeleteList={handleDeleteList}
+            fontSize={settings.fontSize}
+            highContrast={settings.highContrast}
+            contrastTheme={currentThemeId}
+            soundEnabled={settings.soundFeedback}
+          />
+
+          {/* Add Item Form / Quick Staples */}
+          <AddItemBar
+            onAddItem={handleAddItem}
+            onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+            fontSize={settings.fontSize}
+            highContrast={settings.highContrast}
+            contrastTheme={currentThemeId}
+            soundEnabled={settings.soundFeedback}
+          />
+        </div>
+      </div>
 
       {/* Main Container */}
       <main className={`max-w-4xl mx-auto ${containerPaddingClass} pt-4 pb-12 space-y-5 sm:space-y-6`}>
@@ -695,29 +722,6 @@ export default function ShoppingListPage() {
             </div>
           </div>
         )}
-
-        {/* List Navigation Tabs */}
-        <ListSelector
-          lists={lists}
-          activeListId={activeListId}
-          onSelectList={handleSelectList}
-          onCreateList={handleCreateList}
-          onDeleteList={handleDeleteList}
-          fontSize={settings.fontSize}
-          highContrast={settings.highContrast}
-          contrastTheme={currentThemeId}
-          soundEnabled={settings.soundFeedback}
-        />
-
-        {/* Add Item Form / Quick Staples */}
-        <AddItemBar
-          onAddItem={handleAddItem}
-          onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
-          fontSize={settings.fontSize}
-          highContrast={settings.highContrast}
-          contrastTheme={currentThemeId}
-          soundEnabled={settings.soundFeedback}
-        />
 
         {/* Shopping Progress & Summary Card */}
         {activeList && (
