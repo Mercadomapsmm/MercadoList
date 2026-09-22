@@ -11,6 +11,7 @@ import { ListSelector } from '@/components/ListSelector';
 import { VoiceModal } from '@/components/VoiceModal';
 import { ShareModal } from '@/components/ShareModal';
 import { HistorySection } from '@/components/HistorySection';
+import { MercadoLivreBanner } from '@/components/MercadoLivreBanner';
 import { PwaRegister } from '@/components/PwaRegister';
 import { AuthScreen } from '@/components/AuthScreen';
 import { User } from '@/types/auth';
@@ -202,6 +203,7 @@ export default function ShoppingListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [sharedImportPrompt, setSharedImportPrompt] = useState<{
     lists: ShoppingList[];
     sharedByName: string;
@@ -424,6 +426,11 @@ export default function ShoppingListPage() {
                   playUncheckSound();
                 }
               }
+              if (newBought) {
+                const updatedHist = addItemToHistory(history, item, 'comprado');
+                setHistory(updatedHist);
+                saveHistoryToStorage(updatedHist, currentUser?.username);
+              }
               return { ...item, isBought: newBought };
             }
             return item;
@@ -456,6 +463,13 @@ export default function ShoppingListPage() {
   };
 
   const handleDeleteItem = (itemId: string) => {
+    const list = lists.find(l => l.id === activeListId);
+    const itemToDelete = list?.items.find(i => i.id === itemId);
+    if (itemToDelete) {
+      const updatedHist = addItemToHistory(history, itemToDelete, 'removido');
+      setHistory(updatedHist);
+      saveHistoryToStorage(updatedHist, currentUser?.username);
+    }
     setLists(prev =>
       prev.map(l => {
         if (l.id === activeListId) {
@@ -545,6 +559,13 @@ export default function ShoppingListPage() {
 
   const handleClearBought = () => {
     if (!confirm('Deseja remover todos os itens que já foram colocados no carrinho?')) return;
+    const list = lists.find(l => l.id === activeListId);
+    const boughtOnActive = list?.items.filter(i => i.isBought) || [];
+    if (boughtOnActive.length > 0) {
+      const updatedHist = addMultipleItemsToHistory(history, boughtOnActive, 'comprado');
+      setHistory(updatedHist);
+      saveHistoryToStorage(updatedHist, currentUser?.username);
+    }
     setLists(prev =>
       prev.map(l => {
         if (l.id === activeListId) {
@@ -557,6 +578,31 @@ export default function ShoppingListPage() {
         return l;
       })
     );
+  };
+
+  const handleAddItemFromHistory = (histItem: HistoryItem) => {
+    handleAddItem({
+      name: histItem.name,
+      quantity: histItem.quantity || 1,
+      unit: histItem.unit || 'un',
+      category: histItem.category,
+      estimatedPrice: histItem.estimatedPrice,
+    });
+    const updated = addItemToHistory(history, histItem, 'comprado');
+    setHistory(updated);
+    saveHistoryToStorage(updated, currentUser?.username);
+  };
+
+  const handleRemoveFromHistory = (id: string) => {
+    const updated = removeItemFromHistory(history, id);
+    setHistory(updated);
+    saveHistoryToStorage(updated, currentUser?.username);
+  };
+
+  const handleClearHistory = () => {
+    if (!confirm('Deseja limpar todo o histórico de compras?')) return;
+    setHistory([]);
+    saveHistoryToStorage([], currentUser?.username);
   };
 
   const handleReadList = () => {
@@ -707,6 +753,9 @@ export default function ShoppingListPage() {
           </div>
         )}
 
+        {/* Banner Mercado Livre no topo da página */}
+        <MercadoLivreBanner position="top" highContrast={settings.highContrast} />
+
         {/* App Header */}
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -818,6 +867,21 @@ export default function ShoppingListPage() {
             fontSize={settings.fontSize}
             highContrast={settings.highContrast}
             onOpenShare={() => setIsShareModalOpen(true)}
+            onOpenHistory={() => setShowHistory(prev => !prev)}
+          />
+        )}
+
+        {/* Seção Histórico de Itens Recorrentes */}
+        {showHistory && (
+          <HistorySection
+            history={history}
+            activeListItems={activeList?.items || []}
+            onAddItemToList={handleAddItemFromHistory}
+            onRemoveFromHistory={handleRemoveFromHistory}
+            onClearHistory={handleClearHistory}
+            fontSize={settings.fontSize}
+            highContrast={settings.highContrast}
+            soundEnabled={settings.soundFeedback}
           />
         )}
 
@@ -945,15 +1009,8 @@ export default function ShoppingListPage() {
           )}
         </section>
 
-        {/* Helpful Accessibility & Household Tips Footer */}
-        <footer className="pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 space-y-1">
-          <p className="font-semibold">
-            Dica para compras: Marque os itens com um toque conforme coloca no carrinho. Use o botão &ldquo;Ouvir Lista&rdquo; para saber o que ainda falta comprar.
-          </p>
-          <p className="text-[11px] text-slate-400">
-            Lista de Compras Doméstica • Projetado para todas as idades com alta acessibilidade visual e comando de voz.
-          </p>
-        </footer>
+        {/* Banner Mercado Livre no rodapé da página (substituindo o comentário) */}
+        <MercadoLivreBanner position="bottom" highContrast={settings.highContrast} />
       </main>
 
       {/* Voice Recognition Modal */}

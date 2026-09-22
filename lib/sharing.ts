@@ -138,6 +138,55 @@ export function formatWhatsAppMessage(list: ShoppingList, appUrl: string): strin
 }
 
 /**
+ * Gera assunto e corpo de e-mail formatados para envio da lista
+ */
+export function formatEmailMessage(list: ShoppingList, appUrl: string): { subject: string; body: string } {
+  const toBuy = list.items.filter(i => !i.isBought);
+  const bought = list.items.filter(i => i.isBought);
+
+  let totalEst = 0;
+  list.items.forEach(i => {
+    if (i.estimatedPrice) {
+      totalEst += i.estimatedPrice * i.quantity;
+    }
+  });
+
+  const subject = `Lista de Compras: ${list.name}`;
+  let body = `Olá!\n\nAqui está a sua lista de compras "${list.name}":\n\n`;
+
+  if (toBuy.length > 0) {
+    body += `--- ITENS A COMPRAR (${toBuy.length}) ---\n`;
+    toBuy.forEach((i, idx) => {
+      const priceStr = i.estimatedPrice && i.estimatedPrice > 0
+        ? ` (R$ ${(i.estimatedPrice * i.quantity).toFixed(2).replace('.', ',')})`
+        : '';
+      body += `${idx + 1}. [ ] ${i.quantity} ${i.unit} - ${i.name}${priceStr}\n`;
+    });
+    body += `\n`;
+  }
+
+  if (bought.length > 0) {
+    body += `--- ITENS JÁ NO CARRINHO (${bought.length}) ---\n`;
+    bought.forEach((i, idx) => {
+      body += `${idx + 1}. [X] ${i.quantity} ${i.unit} - ${i.name}\n`;
+    });
+    body += `\n`;
+  }
+
+  if (totalEst > 0) {
+    body += `Valor Total Estimado: R$ ${totalEst.toFixed(2).replace('.', ',')}\n\n`;
+  }
+
+  if (appUrl) {
+    body += `Para abrir e sincronizar esta lista no aplicativo, clique no link abaixo:\n${appUrl}\n\n`;
+  }
+
+  body += `Enviado através do aplicativo Lista de Compras Doméstica.`;
+
+  return { subject, body };
+}
+
+/**
  * Exporta todas as listas em arquivo JSON para download
  */
 export function exportListsToJsonFile(lists: ShoppingList[], userName: string): void {
