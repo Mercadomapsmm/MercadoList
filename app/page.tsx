@@ -11,6 +11,7 @@ import { ListSelector } from '@/components/ListSelector';
 import { VoiceModal } from '@/components/VoiceModal';
 import { ShareModal } from '@/components/ShareModal';
 import { MercadoLivreBanner } from '@/components/MercadoLivreBanner';
+import { MercadoListLogo } from '@/components/MercadoListLogo';
 import { PwaRegister } from '@/components/PwaRegister';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
@@ -563,18 +564,75 @@ export default function ShoppingListPage() {
           : 'bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100'
       }`}
     >
-      {/* Top Accessibility Settings Toolbar */}
-      <AccessibilityBar
-        settings={settings}
-        onUpdateSettings={handleUpdateSettings}
-        onReadList={handleReadList}
-        isSpeaking={isSpeaking}
-        onStopSpeaking={handleStopSpeaking}
-        remainingCount={pendingItems.length}
-      />
+      {/* Área Fixa Superior correspondente à imagem enviada: Banner ML + Barra de Acessibilidade + Header do App */}
+      <div
+        id="fixed-top-image-area"
+        className={`sticky top-0 z-40 w-full transition-colors border-b shadow-sm ${
+          settings.highContrast
+            ? 'bg-black border-yellow-400'
+            : 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-slate-200/90 dark:border-slate-800/90'
+        }`}
+      >
+        {/* Banner Mercado Livre Superior */}
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 pt-1.5 pb-1">
+          <MercadoLivreBanner position="top" highContrast={settings.highContrast} />
+        </div>
+
+        {/* Barra de Acessibilidade */}
+        <AccessibilityBar
+          settings={settings}
+          onUpdateSettings={handleUpdateSettings}
+          onReadList={handleReadList}
+          isSpeaking={isSpeaking}
+          onStopSpeaking={handleStopSpeaking}
+          remainingCount={pendingItems.length}
+        />
+
+        {/* Header Principal do App com Logo, Título e Ações */}
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <MercadoListLogo size="md" />
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight flex items-center gap-1.5 leading-none mb-1">
+                <span className="text-[#DE382B] dark:text-[#F84B3D] font-black">MERCADO</span>
+                <span className="font-serif italic font-normal text-slate-800 dark:text-slate-100">List</span>
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                Controle doméstico fácil com comando de voz e alta legibilidade
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
+            {/* Compartilhar o Aplicativo e Listas */}
+            <button
+              id="header-share-app-btn"
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
+              title="Compartilhar o aplicativo e suas listas com outras pessoas"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Compartilhar</span>
+            </button>
+
+            {/* Quick Voice Command CTA Banner */}
+            <button
+              id="header-voice-cta-button"
+              type="button"
+              onClick={() => setIsVoiceModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
+              title="Ditar itens para a lista usando a voz"
+            >
+              <Mic className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+              <span>Adicionar por Voz</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Main Container */}
-      <main className={`max-w-4xl mx-auto ${containerPaddingClass} space-y-5 sm:space-y-6`}>
+      <main className={`max-w-4xl mx-auto ${containerPaddingClass} pt-4 pb-12 space-y-5 sm:space-y-6`}>
         {/* Banner de Importação de Listas Compartilhadas Recebidas */}
         {sharedImportPrompt && (
           <div
@@ -623,52 +681,6 @@ export default function ShoppingListPage() {
             </div>
           </div>
         )}
-
-        {/* Banner Mercado Livre no topo da página */}
-        <MercadoLivreBanner position="top" highContrast={settings.highContrast} />
-
-        {/* App Header */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shrink-0">
-              <ShoppingCart className="w-7 h-7 sm:w-8 sm:h-8" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
-                <span>Lista de Compras</span>
-              </h1>
-              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
-                Controle doméstico fácil com comando de voz e alta legibilidade
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
-            {/* Compartilhar o Aplicativo e Listas */}
-            <button
-              id="header-share-app-btn"
-              type="button"
-              onClick={() => setIsShareModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
-              title="Compartilhar o aplicativo e suas listas com outras pessoas"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>Compartilhar</span>
-            </button>
-
-            {/* Quick Voice Command CTA Banner */}
-            <button
-              id="header-voice-cta-button"
-              type="button"
-              onClick={() => setIsVoiceModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
-              title="Ditar itens para a lista usando a voz"
-            >
-              <Mic className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
-              <span>Adicionar por Voz</span>
-            </button>
-          </div>
-        </header>
 
         {/* List Navigation Tabs */}
         <ListSelector
@@ -830,8 +842,10 @@ export default function ShoppingListPage() {
           )}
         </section>
 
-        {/* Banner Mercado Livre no rodapé da página (substituindo o comentário) */}
-        <MercadoLivreBanner position="bottom" highContrast={settings.highContrast} />
+        {/* Banner Mercado Livre no rodapé (rolagem normal junto ao conteúdo) */}
+        <div id="footer-banner-wrapper" className="pt-2">
+          <MercadoLivreBanner position="bottom" highContrast={settings.highContrast} />
+        </div>
       </main>
 
       {/* Voice Recognition Modal */}
