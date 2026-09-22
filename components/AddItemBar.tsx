@@ -2,16 +2,18 @@
 
 import React, { useState } from 'react';
 import { Plus, Mic, Minus, Tag, DollarSign, ChevronDown } from 'lucide-react';
-import { CategoryId, UnitType, ShoppingItem } from '@/types/shopping';
+import { CategoryId, UnitType, ShoppingItem, ContrastThemeId } from '@/types/shopping';
 import { CATEGORIES, UNIT_OPTIONS, detectCategory } from '@/lib/categories';
 import { TABELA_PRODUTOS_CATEGORIAS, normalizarNome } from '@/lib/productTable';
 import { playAddSound } from '@/lib/sound';
+import { CONTRAST_THEMES } from '@/lib/contrastThemes';
 
 interface AddItemBarProps {
   onAddItem: (item: Omit<ShoppingItem, 'id' | 'createdAt' | 'isBought'>) => void;
   onOpenVoiceModal: () => void;
   fontSize: 'normal' | 'large' | 'extra';
   highContrast: boolean;
+  contrastTheme?: ContrastThemeId;
   soundEnabled: boolean;
 }
 
@@ -20,8 +22,11 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
   onOpenVoiceModal,
   fontSize,
   highContrast,
+  contrastTheme,
   soundEnabled,
 }) => {
+  const currentThemeId = contrastTheme || (highContrast ? 'amarelo-preto' : 'padrao');
+  const activeTheme = CONTRAST_THEMES[currentThemeId] || CONTRAST_THEMES.padrao;
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
   const [unit, setUnit] = useState<UnitType>('un');
@@ -102,11 +107,7 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
     <section
       id="add-item-section"
       aria-label="Adicionar Itens à Lista de Compras"
-      className={`rounded-2xl p-3.5 sm:p-5 shadow-sm border transition-all ${
-        highContrast
-          ? 'bg-zinc-900 border-white text-white'
-          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white'
-      }`}
+      className={`rounded-2xl p-3.5 sm:p-5 shadow-sm border transition-all ${activeTheme.bgCard} ${activeTheme.borderCard} ${activeTheme.textPrimary}`}
     >
       <form onSubmit={handleSubmit} className="space-y-3.5">
         {/* Main Input Row: Name + Voice Button + Add Button */}
@@ -119,7 +120,7 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="O que você precisa comprar? (Ex: Leite, Arroz, Pão...)"
-              className={`w-full px-4 py-3 sm:py-3.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all ${fontInputClasses}`}
+              className={`w-full px-4 py-3 sm:py-3.5 rounded-xl border ${activeTheme.bgInput} ${activeTheme.borderInput} text-current focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium transition-all ${fontInputClasses}`}
               required
             />
             <datalist id="produtos-supermercado-list">
@@ -137,10 +138,10 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
               id="voice-command-bar-button"
               type="button"
               onClick={onOpenVoiceModal}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 sm:py-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold transition-transform active:scale-95 shadow-sm"
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 sm:py-3.5 rounded-xl ${activeTheme.bgButtonSecondary} ${activeTheme.textButtonSecondary} ${activeTheme.borderButtonSecondary} border font-bold transition-transform active:scale-95 shadow-sm`}
               title="Adicionar por comando de voz"
             >
-              <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-pulse" />
+              <Mic className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
               <span className="text-sm sm:text-base">Falar</span>
             </button>
 
@@ -149,7 +150,7 @@ export const AddItemBar: React.FC<AddItemBarProps> = ({
               id="add-item-submit-button"
               type="submit"
               disabled={!name.trim()}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-3 sm:py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-3 sm:py-3.5 rounded-xl ${activeTheme.bgButtonPrimary} ${activeTheme.textButtonPrimary} font-bold transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:pointer-events-none`}
             >
               <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
               <span className="text-sm sm:text-base">Adicionar</span>

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingItem, FontSizeOption } from '@/types/shopping';
+import { ShoppingItem, FontSizeOption, ContrastThemeId } from '@/types/shopping';
 import { CheckCircle2, ShoppingBag, Trash2, Share2, Volume2, Check, Filter } from 'lucide-react';
+import { CONTRAST_THEMES } from '@/lib/contrastThemes';
 
 interface ShoppingListSummaryProps {
   items: ShoppingItem[];
@@ -13,6 +14,7 @@ interface ShoppingListSummaryProps {
   listName: string;
   fontSize: FontSizeOption;
   highContrast: boolean;
+  contrastTheme?: ContrastThemeId;
   onOpenShare?: () => void;
 }
 
@@ -25,8 +27,11 @@ export const ShoppingListSummary: React.FC<ShoppingListSummaryProps> = ({
   listName,
   fontSize,
   highContrast,
+  contrastTheme,
   onOpenShare,
 }) => {
+  const currentThemeId = contrastTheme || (highContrast ? 'amarelo-preto' : 'padrao');
+  const activeTheme = CONTRAST_THEMES[currentThemeId] || CONTRAST_THEMES.padrao;
   const [copied, setCopied] = useState(false);
 
   const totalCount = items.length;
@@ -93,11 +98,7 @@ export const ShoppingListSummary: React.FC<ShoppingListSummaryProps> = ({
     <section
       id="shopping-list-summary"
       aria-label="Resumo da Lista de Compras"
-      className={`rounded-2xl p-4 sm:p-5 border transition-all ${
-        highContrast
-          ? 'bg-zinc-900 border-white text-white'
-          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs'
-      }`}
+      className={`rounded-2xl p-4 sm:p-5 border transition-all ${activeTheme.bgCard} ${activeTheme.borderCard} ${activeTheme.textPrimary}`}
     >
       {/* Top row: Progress bar + Percentage */}
       <div className="space-y-2 mb-4">

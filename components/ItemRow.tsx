@@ -12,8 +12,22 @@ import {
   X,
   Tag,
 } from 'lucide-react';
-import { ShoppingItem, FontSizeOption, CategoryId } from '@/types/shopping';
+import { ShoppingItem, FontSizeOption, CategoryId, UnitType, ContrastThemeId } from '@/types/shopping';
 import { CATEGORIES } from '@/lib/categories';
+import { CONTRAST_THEMES } from '@/lib/contrastThemes';
+
+export const UNIT_OPTIONS: { value: UnitType; label: string; fullLabel: string }[] = [
+  { value: 'un', label: 'un', fullLabel: 'Unidade' },
+  { value: 'kg', label: 'kg', fullLabel: 'Quilo' },
+  { value: 'g', label: 'g', fullLabel: 'Grama' },
+  { value: 'L', label: 'L', fullLabel: 'Litro' },
+  { value: 'ml', label: 'ml', fullLabel: 'Mililitro' },
+  { value: 'pct', label: 'pct', fullLabel: 'Pacote' },
+  { value: 'cx', label: 'cx', fullLabel: 'Caixa' },
+  { value: 'dz', label: 'dz', fullLabel: 'Dúzia' },
+  { value: 'lata', label: 'lata', fullLabel: 'Lata' },
+  { value: 'garrafa', label: 'garrafa', fullLabel: 'Garrafa' },
+];
 
 interface ItemRowProps {
   item: ShoppingItem;
@@ -22,8 +36,10 @@ interface ItemRowProps {
   onUpdateQuantity: (id: string, newQty: number) => void;
   onUpdateCategory: (id: string, newCategory: CategoryId) => void;
   onUpdatePrice: (id: string, newPrice: number) => void;
+  onUpdateUnit: (id: string, newUnit: UnitType) => void;
   fontSize: FontSizeOption;
   highContrast: boolean;
+  contrastTheme?: ContrastThemeId;
 }
 
 export const ItemRow: React.FC<ItemRowProps> = ({
@@ -33,9 +49,12 @@ export const ItemRow: React.FC<ItemRowProps> = ({
   onUpdateQuantity,
   onUpdateCategory,
   onUpdatePrice,
+  onUpdateUnit,
   fontSize,
   highContrast,
+  contrastTheme,
 }) => {
+  const currentThemeId = contrastTheme || (highContrast ? 'amarelo-preto' : 'padrao');
   const cat = CATEGORIES[item.category] || CATEGORIES.outros;
 
   // Estado para alteração de preço diretamente na lista
@@ -96,18 +115,85 @@ export const ItemRow: React.FC<ItemRowProps> = ({
   const itemHasPrice = item.estimatedPrice !== undefined && item.estimatedPrice > 0;
   const totalPrice = itemHasPrice ? item.estimatedPrice! * item.quantity : 0;
 
+  const getCardClasses = () => {
+    if (item.isBought) {
+      switch (currentThemeId) {
+        case 'amarelo-preto':
+          return 'bg-zinc-950/80 border-2 border-yellow-400/40 text-yellow-400/50 opacity-80';
+        case 'azul-noturno':
+          return 'bg-[#0a142c]/80 border-2 border-sky-400/40 text-sky-200/50 opacity-80';
+        case 'verde-esmeralda':
+          return 'bg-[#052e16]/80 border-2 border-emerald-400/40 text-emerald-200/50 opacity-80';
+        case 'preto-branco':
+          return 'bg-zinc-950 border-2 border-white/50 text-zinc-400 opacity-80';
+        default:
+          return 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 text-slate-500 dark:text-slate-400';
+      }
+    }
+
+    switch (currentThemeId) {
+      case 'amarelo-preto':
+        return 'bg-zinc-950 border-2 border-yellow-400 text-yellow-300 shadow-md hover:border-yellow-300';
+      case 'azul-noturno':
+        return 'bg-[#0d1a3a] border-2 border-sky-400 text-white shadow-md hover:border-sky-300';
+      case 'verde-esmeralda':
+        return 'bg-[#073b1d] border-2 border-emerald-400 text-white shadow-md hover:border-emerald-300';
+      case 'preto-branco':
+        return 'bg-zinc-950 border-2 border-white text-white shadow-md';
+      default:
+        return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700';
+    }
+  };
+
+  const getCheckboxClasses = () => {
+    if (item.isBought) {
+      switch (currentThemeId) {
+        case 'amarelo-preto':
+          return 'bg-yellow-400 text-black shadow-sm ring-2 ring-yellow-400';
+        case 'azul-noturno':
+          return 'bg-sky-400 text-slate-950 shadow-sm ring-2 ring-sky-400';
+        case 'verde-esmeralda':
+          return 'bg-emerald-400 text-slate-950 shadow-sm ring-2 ring-emerald-400';
+        case 'preto-branco':
+          return 'bg-white text-black shadow-sm ring-2 ring-white';
+        default:
+          return 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500';
+      }
+    }
+
+    switch (currentThemeId) {
+      case 'amarelo-preto':
+        return 'border-2 border-yellow-400 bg-black hover:bg-yellow-400/20';
+      case 'azul-noturno':
+        return 'border-2 border-sky-400 bg-[#091228] hover:bg-sky-400/20';
+      case 'verde-esmeralda':
+        return 'border-2 border-emerald-400 bg-[#042410] hover:bg-emerald-400/20';
+      case 'preto-branco':
+        return 'border-2 border-white bg-black hover:bg-white/20';
+      default:
+        return 'border-2 border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-emerald-500';
+    }
+  };
+
+  const getQtyNumberColor = () => {
+    switch (currentThemeId) {
+      case 'amarelo-preto':
+        return 'text-yellow-400 font-black';
+      case 'azul-noturno':
+        return 'text-sky-300 font-black';
+      case 'verde-esmeralda':
+        return 'text-emerald-300 font-black';
+      case 'preto-branco':
+        return 'text-white font-black';
+      default:
+        return 'text-emerald-700 dark:text-emerald-400 font-black';
+    }
+  };
+
   return (
     <div
       id={`item-row-${item.id}`}
-      className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all duration-150 gap-2.5 sm:gap-4 ${
-        item.isBought
-          ? highContrast
-            ? 'bg-zinc-900/80 border-zinc-700 text-zinc-400 opacity-75'
-            : 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 text-slate-500 dark:text-slate-400'
-          : highContrast
-          ? 'bg-black border-2 border-white text-white hover:border-yellow-400'
-          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700'
-      }`}
+      className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all duration-150 gap-2.5 sm:gap-4 ${getCardClasses()}`}
     >
       {/* Left section: Large Checkbox + Name + Interactive Category + Price */}
       <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0 pr-1">
@@ -121,13 +207,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
               ? `Desmarcar ${item.name} da lista de compras`
               : `Marcar ${item.name} como comprado`
           }
-          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform active:scale-90 focus:outline-none focus:ring-4 focus:ring-emerald-400 mt-0.5 sm:mt-0 ${
-            item.isBought
-              ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500'
-              : highContrast
-              ? 'border-3 border-white bg-transparent hover:bg-white/20'
-              : 'border-2 border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-emerald-500'
-          }`}
+          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform active:scale-90 focus:outline-none focus:ring-4 focus:ring-emerald-400 mt-0.5 sm:mt-0 ${getCheckboxClasses()}`}
         >
           {item.isBought ? (
             <Check className="w-6 h-6 sm:w-7 sm:h-7 stroke-[3.5]" />
@@ -297,14 +377,42 @@ export const ItemRow: React.FC<ItemRowProps> = ({
             </button>
           )}
 
-          {/* Large Numerals for Easy Vision */}
-          <div className="px-1.5 text-center min-w-10">
-            <span className={`text-emerald-700 dark:text-emerald-400 ${numberSizeClass}`}>
+          {/* Large Numerals for Easy Vision + Interactive Unit Selector */}
+          <div className="flex items-center px-1 text-center">
+            <span className={`${getQtyNumberColor()} ${numberSizeClass}`}>
               {item.quantity}
             </span>
-            <span className="ml-1 text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 uppercase">
-              {item.unit}
-            </span>
+
+            {/* Seletor interativo da Unidade de Medida */}
+            <div className="relative inline-flex items-center ml-1">
+              <label htmlFor={`unit-select-${item.id}`} className="sr-only">
+                Alterar unidade de medida de {item.name}
+              </label>
+              <select
+                id={`unit-select-${item.id}`}
+                value={item.unit}
+                onChange={(e) => onUpdateUnit(item.id, e.target.value as UnitType)}
+                title="Clique para alterar a unidade de medida deste produto"
+                aria-label={`Alterar unidade de medida de ${item.name}`}
+                disabled={item.isBought}
+                className={`appearance-none cursor-pointer pl-1.5 pr-4 py-0.5 rounded-md text-xs sm:text-sm font-bold uppercase tracking-wider transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 border ${
+                  highContrast
+                    ? 'bg-zinc-800 text-yellow-300 border-yellow-400'
+                    : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 hover:border-emerald-500'
+                }`}
+              >
+                {UNIT_OPTIONS.map((u) => (
+                  <option
+                    key={u.value}
+                    value={u.value}
+                    className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold normal-case"
+                  >
+                    {u.label} - {u.fullLabel}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 absolute right-0.5 pointer-events-none opacity-60 text-slate-500" />
+            </div>
           </div>
 
           {!item.isBought && (

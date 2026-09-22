@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShoppingList, FontSizeOption } from '@/types/shopping';
+import { ShoppingList, FontSizeOption, ContrastThemeId } from '@/types/shopping';
 import { Plus, List, Mic, Trash2, Edit2, Check, X, FolderPlus } from 'lucide-react';
 import { playAddSound, playVoiceStartSound } from '@/lib/sound';
+import { CONTRAST_THEMES } from '@/lib/contrastThemes';
 
 interface ListSelectorProps {
   lists: ShoppingList[];
@@ -13,6 +14,7 @@ interface ListSelectorProps {
   onDeleteList: (id: string) => void;
   fontSize: FontSizeOption;
   highContrast: boolean;
+  contrastTheme?: ContrastThemeId;
   soundEnabled: boolean;
 }
 
@@ -24,8 +26,11 @@ export const ListSelector: React.FC<ListSelectorProps> = ({
   onDeleteList,
   fontSize,
   highContrast,
+  contrastTheme,
   soundEnabled,
 }) => {
+  const currentThemeId = contrastTheme || (highContrast ? 'amarelo-preto' : 'padrao');
+  const activeTheme = CONTRAST_THEMES[currentThemeId] || CONTRAST_THEMES.padrao;
   const [isCreating, setIsCreating] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [isListeningForListName, setIsListeningForListName] = useState(false);
@@ -195,12 +200,8 @@ export const ListSelector: React.FC<ListSelectorProps> = ({
               key={list.id}
               className={`group flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border transition-all cursor-pointer whitespace-nowrap active:scale-98 ${
                 isActive
-                  ? highContrast
-                    ? 'bg-white text-black border-2 border-white ring-2 ring-yellow-400 shadow-md font-black'
-                    : 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-extrabold'
-                  : highContrast
-                  ? 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-white'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-400 dark:hover:border-emerald-600'
+                  ? `${activeTheme.bgButtonPrimary} ${activeTheme.textButtonPrimary} border-transparent shadow-md font-extrabold ring-2 ring-current`
+                  : `${activeTheme.bgCard} ${activeTheme.borderCard} ${activeTheme.textPrimary} hover:opacity-90`
               }`}
               onClick={() => onSelectList(list.id)}
             >

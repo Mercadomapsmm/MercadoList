@@ -11,8 +11,8 @@ import { ListSelector } from '@/components/ListSelector';
 import { VoiceModal } from '@/components/VoiceModal';
 import { ShareModal } from '@/components/ShareModal';
 import { MercadoLivreBanner } from '@/components/MercadoLivreBanner';
-import { MercadoListLogo } from '@/components/MercadoListLogo';
 import { PwaRegister } from '@/components/PwaRegister';
+import { CONTRAST_THEMES } from '@/lib/contrastThemes';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
 import { ParsedVoiceItem, speakListItems, stopSpeaking } from '@/lib/speech';
@@ -176,6 +176,7 @@ const INITIAL_LISTS: ShoppingList[] = [
 const DEFAULT_SETTINGS: AccessibilitySettings = {
   fontSize: 'normal',
   highContrast: false,
+  contrastTheme: 'padrao',
   soundFeedback: true,
   groupByCategory: false,
   speechSpeed: 1.0,
@@ -455,6 +456,23 @@ export default function ShoppingListPage() {
     );
   };
 
+  const handleUpdateUnit = (itemId: string, newUnit: UnitType) => {
+    setLists(prev =>
+      prev.map(l => {
+        if (l.id === activeListId) {
+          return {
+            ...l,
+            items: l.items.map(item =>
+              item.id === itemId ? { ...item, unit: newUnit } : item
+            ),
+            updatedAt: Date.now(),
+          };
+        }
+        return l;
+      })
+    );
+  };
+
   const handleConfirmSharedImport = () => {
     if (!sharedImportPrompt) return;
     setLists(sharedImportPrompt.lists);
@@ -543,6 +561,9 @@ export default function ShoppingListPage() {
     extra: 'p-6 sm:p-8',
   }[settings.fontSize];
 
+  const currentThemeId = settings.contrastTheme || (settings.highContrast ? 'amarelo-preto' : 'padrao');
+  const activeTheme = CONTRAST_THEMES[currentThemeId] || CONTRAST_THEMES.padrao;
+
   // Carregamento inicial rápido para sincronizar estado e evitar hydration mismatch
   if (!hasMounted) {
     return (
@@ -559,77 +580,70 @@ export default function ShoppingListPage() {
     <div
       id="app-root"
       suppressHydrationWarning
-      className={`min-h-screen transition-colors ${
-        settings.highContrast
-          ? 'bg-black text-white'
-          : 'bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100'
-      }`}
+      className={`min-h-screen transition-colors ${activeTheme.bgPage}`}
     >
-      {/* Área Fixa Superior correspondente à imagem enviada: Banner ML + Barra de Acessibilidade + Header do App */}
+      {/* Área Fixa Superior: SOMENTE a área da imagem/banner fica fixa */}
       <div
         id="fixed-top-image-area"
-        className={`sticky top-0 z-40 w-full transition-colors border-b shadow-sm ${
-          settings.highContrast
-            ? 'bg-black border-yellow-400'
-            : 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-slate-200/90 dark:border-slate-800/90'
-        }`}
+        className={`sticky top-0 z-40 w-full transition-colors border-b shadow-sm ${activeTheme.bgStickyHeader} ${activeTheme.borderStickyHeader}`}
       >
         {/* Banner Mercado Livre Superior */}
-        <div className="max-w-4xl mx-auto px-2 sm:px-4 pt-1.5 pb-1">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 py-1.5">
           <MercadoLivreBanner position="top" highContrast={settings.highContrast} />
         </div>
-
-        {/* Barra de Acessibilidade */}
-        <AccessibilityBar
-          settings={settings}
-          onUpdateSettings={handleUpdateSettings}
-          onReadList={handleReadList}
-          isSpeaking={isSpeaking}
-          onStopSpeaking={handleStopSpeaking}
-          remainingCount={pendingItems.length}
-        />
-
-        {/* Header Principal do App com Logo, Título e Ações */}
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <MercadoListLogo size="md" />
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-none mb-1 text-slate-900 dark:text-white">
-                Lista de Compras
-              </h1>
-              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-snug">
-                Controle doméstico fácil com comando de voz e alta legibilidade
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
-            {/* Compartilhar o Aplicativo e Listas */}
-            <button
-              id="header-share-app-btn"
-              type="button"
-              onClick={() => setIsShareModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
-              title="Compartilhar o aplicativo e suas listas com outras pessoas"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>Compartilhar</span>
-            </button>
-
-            {/* Quick Voice Command CTA Banner */}
-            <button
-              id="header-voice-cta-button"
-              type="button"
-              onClick={() => setIsVoiceModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm"
-              title="Ditar itens para a lista usando a voz"
-            >
-              <Mic className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
-              <span>Adicionar por Voz</span>
-            </button>
-          </div>
-        </div>
       </div>
+
+      {/* Barra de Acessibilidade */}
+      <AccessibilityBar
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+        onReadList={handleReadList}
+        isSpeaking={isSpeaking}
+        onStopSpeaking={handleStopSpeaking}
+        remainingCount={pendingItems.length}
+      />
+
+      {/* Header Principal do App com Título sempre em Destaque e Ações */}
+      <header className="max-w-4xl mx-auto px-3 sm:px-4 pt-3 pb-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`w-2.5 sm:w-3 h-8 sm:h-9 rounded-full ${activeTheme.accentBar}`}
+            aria-hidden="true"
+          />
+          <h1
+            id="app-main-title"
+            className={`text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-none ${activeTheme.titleColor}`}
+          >
+            Lista de Compras
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
+          {/* Compartilhar o Aplicativo e Listas */}
+          <button
+            id="header-share-app-btn"
+            type="button"
+            onClick={() => setIsShareModalOpen(true)}
+            className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm ${activeTheme.bgButtonSecondary} ${activeTheme.textButtonSecondary} ${activeTheme.borderButtonSecondary} border`}
+            title="Compartilhar o aplicativo e suas listas com outras pessoas"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Compartilhar</span>
+          </button>
+
+          {/* Quick Voice Command CTA Banner */}
+          <button
+            id="header-voice-cta-button"
+            type="button"
+            onClick={() => setIsVoiceModalOpen(true)}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95 text-xs sm:text-sm ${activeTheme.bgButtonPrimary} ${activeTheme.textButtonPrimary}`}
+            title="Ditar itens para a lista usando a voz"
+          >
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+            <span>Adicionar por Voz</span>
+          </button>
+        </div>
+      </header>
 
       {/* Main Container */}
       <main className={`max-w-4xl mx-auto ${containerPaddingClass} pt-4 pb-12 space-y-5 sm:space-y-6`}>
@@ -691,6 +705,7 @@ export default function ShoppingListPage() {
           onDeleteList={handleDeleteList}
           fontSize={settings.fontSize}
           highContrast={settings.highContrast}
+          contrastTheme={currentThemeId}
           soundEnabled={settings.soundFeedback}
         />
 
@@ -700,6 +715,7 @@ export default function ShoppingListPage() {
           onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
           fontSize={settings.fontSize}
           highContrast={settings.highContrast}
+          contrastTheme={currentThemeId}
           soundEnabled={settings.soundFeedback}
         />
 
@@ -714,6 +730,7 @@ export default function ShoppingListPage() {
             listName={activeList.name}
             fontSize={settings.fontSize}
             highContrast={settings.highContrast}
+            contrastTheme={currentThemeId}
             onOpenShare={() => setIsShareModalOpen(true)}
           />
         )}
@@ -728,7 +745,7 @@ export default function ShoppingListPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar item ou categoria nesta lista..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-sm sm:text-base font-semibold focus:ring-2 focus:ring-emerald-500"
+              className={`w-full pl-10 pr-4 py-2.5 rounded-xl border ${activeTheme.bgInput} ${activeTheme.borderInput} text-current text-sm sm:text-base font-semibold focus:ring-2 focus:ring-emerald-500`}
             />
           </div>
 
@@ -738,13 +755,9 @@ export default function ShoppingListPage() {
             type="button"
             onClick={() => handleUpdateSettings({ groupByCategory: !settings.groupByCategory })}
             className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all shrink-0 active:scale-95 ${
-              settings.highContrast
-                ? settings.groupByCategory
-                  ? 'bg-yellow-400 text-black border-yellow-300 ring-2 ring-yellow-300 font-extrabold'
-                  : 'bg-black text-white border-white hover:bg-zinc-900'
-                : settings.groupByCategory
-                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
-                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+              settings.groupByCategory
+                ? `${activeTheme.bgButtonPrimary} ${activeTheme.textButtonPrimary} border-transparent ring-2 ring-current`
+                : `${activeTheme.bgCard} ${activeTheme.borderCard} ${activeTheme.textPrimary}`
             }`}
             title="Agrupar os produtos da lista por categorias de supermercado"
           >
@@ -789,8 +802,8 @@ export default function ShoppingListPage() {
                     {/* Category Header Banner */}
                     <div
                       className={`flex items-center justify-between px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-bold ${
-                        settings.highContrast
-                          ? 'bg-zinc-900 text-yellow-300 border-yellow-400'
+                        settings.highContrast || (settings.contrastTheme && settings.contrastTheme !== 'padrao')
+                          ? `${activeTheme.bgCard} ${activeTheme.borderCard} ${activeTheme.titleColor}`
                           : `${group.category.bgColor} ${group.category.color} ${group.category.borderColor}`
                       }`}
                     >
@@ -814,8 +827,10 @@ export default function ShoppingListPage() {
                           onUpdateQuantity={handleUpdateQuantity}
                           onUpdateCategory={handleUpdateCategory}
                           onUpdatePrice={handleUpdatePrice}
+                          onUpdateUnit={handleUpdateUnit}
                           fontSize={settings.fontSize}
                           highContrast={settings.highContrast}
+                          contrastTheme={currentThemeId}
                         />
                       ))}
                     </div>
@@ -834,8 +849,10 @@ export default function ShoppingListPage() {
                   onUpdateQuantity={handleUpdateQuantity}
                   onUpdateCategory={handleUpdateCategory}
                   onUpdatePrice={handleUpdatePrice}
+                  onUpdateUnit={handleUpdateUnit}
                   fontSize={settings.fontSize}
                   highContrast={settings.highContrast}
+                  contrastTheme={currentThemeId}
                 />
               ))}
             </div>

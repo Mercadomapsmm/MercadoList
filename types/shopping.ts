@@ -58,9 +58,17 @@ export interface HistoryItem {
 
 export type FontSizeOption = 'normal' | 'large' | 'extra';
 
+export type ContrastThemeId =
+  | 'padrao'
+  | 'amarelo-preto'
+  | 'azul-noturno'
+  | 'verde-esmeralda'
+  | 'preto-branco';
+
 export interface AccessibilitySettings {
   fontSize: FontSizeOption;
   highContrast: boolean;
+  contrastTheme: ContrastThemeId;
   soundFeedback: boolean;
   groupByCategory: boolean;
   speechSpeed: number;
