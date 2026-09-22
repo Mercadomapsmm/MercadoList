@@ -46,6 +46,7 @@ Identifique:
 - "quantity": Número decimal ou inteiro (ex: 1, 2, 0.5, 6). Se não especificado, use 1.
 - "unit": Escolha estritamente entre: "un", "kg", "g", "L", "ml", "pct", "cx", "dz", "lata", "garrafa".
 - "category": Escolha estritamente entre: "hortifruti", "carnes", "laticinios", "mercearia", "padaria", "bebidas", "limpeza", "higiene", "congelados", "outros".
+- "estimatedPrice": Preço numérico em reais se mencionado na fala (ex: 45, 12.50, 9.90). Se não mencionado, não inclua ou use null.
 
 Texto do usuário: "${transcript}"`;
 
@@ -77,6 +78,10 @@ Texto do usuário: "${transcript}"`;
                   category: {
                     type: Type.STRING,
                     description: 'Categoria do item no supermercado',
+                  },
+                  estimatedPrice: {
+                    type: Type.NUMBER,
+                    description: 'Preço numérico em Reais se mencionado',
                   },
                 },
                 required: ['name', 'quantity', 'unit', 'category'],

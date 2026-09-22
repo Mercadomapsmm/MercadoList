@@ -23,19 +23,19 @@ export const MercadoListLogo: React.FC<MercadoListLogoProps> = ({
     <div
       id="app-mercado-list-logo"
       className={`relative ${sizeClasses} rounded-2xl overflow-hidden bg-white shadow-md border border-slate-200/90 dark:border-slate-700 shrink-0 flex items-center justify-center p-0.5 select-none transition-transform hover:scale-105 ${className}`}
-      title="MERCADO List"
+      title="Lista de Compras"
     >
       {!hasError ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src="/images/logo.png"
-          alt="MERCADO List Logo"
+          alt="Lista de Compras Logo"
           className="w-full h-full object-contain rounded-xl"
           onError={() => setHasError(true)}
           referrerPolicy="no-referrer"
         />
       ) : (
-        // Vector fallback recreando a arte exata com precisão
+        // Vector fallback recreando o visual com precisão
         <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
           {/* Raios laranjas radiantes */}
           <g stroke="#F37324" strokeWidth="3.5" strokeLinecap="round">
@@ -50,31 +50,29 @@ export const MercadoListLogo: React.FC<MercadoListLogoProps> = ({
             <line x1="60" y1="78" x2="62" y2="86" />
             <line x1="73" y1="74" x2="78" y2="79" />
           </g>
-          {/* Texto MERCADO em vermelho vibrante */}
+          {/* Texto Lista de Compras */}
           <text
             x="50"
             y="48"
             textAnchor="middle"
             fill="#E52E2D"
             fontWeight="900"
-            fontSize="18"
+            fontSize="15"
             fontFamily="system-ui, -apple-system, sans-serif"
             letterSpacing="-0.5"
           >
-            MERCADO
+            LISTA DE
           </text>
-          {/* Texto List em preto manuscrito */}
           <text
-            x="51"
+            x="50"
             y="68"
             textAnchor="middle"
             fill="#1E1E1E"
-            fontWeight="600"
-            fontSize="21"
-            fontFamily="'Brush Script MT', 'Caveat', 'Segoe Script', cursive"
-            fontStyle="italic"
+            fontWeight="700"
+            fontSize="14"
+            fontFamily="system-ui, -apple-system, sans-serif"
           >
-            List
+            COMPRAS
           </text>
         </svg>
       )}

@@ -89,6 +89,7 @@ export const UNIT_OPTIONS: { value: UnitType; label: string; fullLabel: string }
   { value: 'kg', label: 'kg', fullLabel: 'Quilo(s)' },
   { value: 'g', label: 'g', fullLabel: 'Grama(s)' },
   { value: 'L', label: 'L', fullLabel: 'Litro(s)' },
+  { value: 'ml', label: 'ml', fullLabel: 'Mililitro(s)' },
   { value: 'pct', label: 'pct', fullLabel: 'Pacote(s)' },
   { value: 'cx', label: 'cx', fullLabel: 'Caixa(s)' },
   { value: 'dz', label: 'dz', fullLabel: 'Dúzia(s)' },

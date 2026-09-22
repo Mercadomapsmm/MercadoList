@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Check, X, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
-import { ParsedVoiceItem, parseSpokenShoppingText, isSpeechRecognitionSupported } from '@/lib/speech';
-import { CATEGORIES } from '@/lib/categories';
+import { Mic, MicOff, Check, X, AlertCircle, Plus } from 'lucide-react';
+import { ParsedVoiceItem, parseSpokenShoppingText } from '@/lib/speech';
+import { CATEGORIES, UNIT_OPTIONS } from '@/lib/categories';
+import { CategoryId, UnitType } from '@/types/shopping';
 import { playVoiceStartSound, playAddSound } from '@/lib/sound';
 
 interface VoiceModalProps {
@@ -41,7 +42,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
   const [transcript, setTranscript] = useState('');
   const [interimText, setInterimText] = useState('');
   const [parsedItems, setParsedItems] = useState<ParsedVoiceItem[]>([]);
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [manualText, setManualText] = useState('');
   const recognitionRef = useRef<IWindowSpeechRecognition | null>(null);
@@ -93,7 +93,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
         setTranscript(fullText);
         setInterimText('');
 
-        // Parse in real-time
+        // Parse in real-time with quantity, unit, price, and category
         if (fullText) {
           const items = parseSpokenShoppingText(fullText);
           setParsedItems(items);
@@ -166,43 +166,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     };
   }, [isOpen, startListening]);
 
-  // Enhance with server-side Gemini AI if requested
-  const handleEnhanceWithAI = async () => {
-    const textToAnalyze = transcript || manualText;
-    if (!textToAnalyze.trim()) return;
-
-    setIsProcessingAI(true);
-    setErrorMessage(null);
-
-    try {
-      const res = await fetch('/api/gemini/parse-voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: textToAnalyze }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Falha ao processar com IA. Usando processamento local.');
-      }
-
-      const data = await res.json();
-      if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-        setParsedItems(data.items);
-      } else {
-        // Fallback local
-        const fallback = parseSpokenShoppingText(textToAnalyze);
-        setParsedItems(fallback);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro na IA';
-      console.warn('AI error, using local parse:', msg);
-      const fallback = parseSpokenShoppingText(textToAnalyze);
-      setParsedItems(fallback);
-    } finally {
-      setIsProcessingAI(false);
-    }
-  };
-
   // Handle manual input typing
   const handleManualTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -215,11 +178,45 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
     }
   };
 
+  const handleUpdateItemName = (idx: number, name: string) => {
+    setParsedItems(prev => prev.map((item, i) => (i === idx ? { ...item, name } : item)));
+  };
+
+  const handleUpdateItemQuantity = (idx: number, quantity: number) => {
+    setParsedItems(prev => prev.map((item, i) => (i === idx ? { ...item, quantity: Math.max(0.1, quantity) } : item)));
+  };
+
+  const handleUpdateItemUnit = (idx: number, unit: UnitType) => {
+    setParsedItems(prev => prev.map((item, i) => (i === idx ? { ...item, unit } : item)));
+  };
+
+  const handleUpdateItemPrice = (idx: number, estimatedPrice?: number) => {
+    setParsedItems(prev => prev.map((item, i) => (i === idx ? { ...item, estimatedPrice } : item)));
+  };
+
+  const handleUpdateItemCategory = (idx: number, category: CategoryId) => {
+    setParsedItems(prev => prev.map((item, i) => (i === idx ? { ...item, category } : item)));
+  };
+
+  const handleAddNewItem = () => {
+    setParsedItems(prev => [
+      ...prev,
+      {
+        name: '',
+        quantity: 1,
+        unit: 'un',
+        category: 'mercearia',
+        estimatedPrice: undefined,
+      },
+    ]);
+  };
+
   const handleConfirmAdd = () => {
-    if (parsedItems.length === 0) return;
-    onAddItems(parsedItems);
+    const validItems = parsedItems.filter(i => i.name.trim().length > 0);
+    if (validItems.length === 0) return;
+    onAddItems(validItems);
     if (soundEnabled) playAddSound();
-    onClose();
+    handleCloseModal();
   };
 
   const handleRemoveParsedItem = (index: number) => {
@@ -243,15 +240,15 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
       <div
         id="voice-modal-card"
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-lg rounded-2xl p-5 sm:p-6 shadow-2xl border transition-all ${
+        className={`w-full max-w-2xl rounded-2xl p-4 sm:p-6 shadow-2xl border transition-all max-h-[92vh] flex flex-col ${
           highContrast
             ? 'bg-black text-white border-white'
             : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
               <Mic className="w-6 h-6" />
             </div>
@@ -260,7 +257,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
                 Adicionar por Voz
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-                Fale um ou vários itens de uma só vez
+                Informe nome, quantidade, unidade, preço e categoria
               </p>
             </div>
           </div>
@@ -275,151 +272,226 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
           </button>
         </div>
 
-        {/* Center: Microphone Visual & Status */}
-        <div className="py-6 flex flex-col items-center text-center">
-          <div className="relative mb-4">
-            {/* Animated Pulse Ring */}
-            {isListening && (
-              <>
-                <span className="absolute -inset-3 rounded-full bg-emerald-400/30 dark:bg-emerald-500/30 animate-ping opacity-75" />
-                <span className="absolute -inset-6 rounded-full bg-emerald-300/20 dark:bg-emerald-500/20 animate-pulse" />
-              </>
-            )}
-
-            <button
-              id="toggle-mic-listening-btn"
-              type="button"
-              onClick={isListening ? stopListening : startListening}
-              className={`relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center transition-all shadow-lg active:scale-95 ${
-                isListening
-                  ? 'bg-rose-600 text-white ring-4 ring-rose-300 dark:ring-rose-900 animate-bounce-subtle'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white ring-4 ring-emerald-200 dark:ring-emerald-900'
-              }`}
-              title={isListening ? 'Toque para parar de ouvir' : 'Toque para falar'}
-              aria-label={isListening ? 'Gravando voz. Toque para parar.' : 'Toque para falar'}
-            >
-              {isListening ? (
+        {/* Scrollable Body */}
+        <div className="overflow-y-auto flex-1 py-3 pr-0.5 space-y-4">
+          {/* Center: Microphone Visual & Status */}
+          <div className="py-2 sm:py-4 flex flex-col items-center text-center">
+            <div className="relative mb-3">
+              {/* Animated Pulse Ring */}
+              {isListening && (
                 <>
-                  <MicOff className="w-10 h-10 mb-1" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Parar</span>
-                </>
-              ) : (
-                <>
-                  <Mic className="w-10 h-10 mb-1" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Falar</span>
+                  <span className="absolute -inset-3 rounded-full bg-emerald-400/30 dark:bg-emerald-500/30 animate-ping opacity-75" />
+                  <span className="absolute -inset-6 rounded-full bg-emerald-300/20 dark:bg-emerald-500/20 animate-pulse" />
                 </>
               )}
-            </button>
-          </div>
 
-          <p className={`font-bold transition-all ${fontClasses} ${isListening ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`}>
-            {isListening ? 'Ouvindo você... pode falar!' : 'Toque no microfone para começar a falar'}
-          </p>
+              <button
+                id="toggle-mic-listening-btn"
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                className={`relative z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center transition-all shadow-lg active:scale-95 ${
+                  isListening
+                    ? 'bg-rose-600 text-white ring-4 ring-rose-300 dark:ring-rose-900 animate-bounce-subtle'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white ring-4 ring-emerald-200 dark:ring-emerald-900'
+                }`}
+                title={isListening ? 'Toque para parar de ouvir' : 'Toque para falar'}
+                aria-label={isListening ? 'Gravando voz. Toque para parar.' : 'Toque para falar'}
+              >
+                {isListening ? (
+                  <>
+                    <MicOff className="w-8 h-8 sm:w-10 sm:h-10 mb-0.5" />
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Parar</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-8 h-8 sm:w-10 sm:h-10 mb-0.5" />
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">Falar</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mt-1">
-            Exemplo: <span className="italic font-medium text-slate-700 dark:text-slate-300">&ldquo;2 quilos de batata, sabão em pó e 3 leites&rdquo;</span>
-          </p>
-        </div>
+            <p className={`font-bold transition-all ${fontClasses} ${isListening ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>
+              {isListening ? 'Ouvindo você... pode falar!' : 'Toque no microfone para começar a falar'}
+            </p>
 
-        {/* Live Spoken Text Box */}
-        {(transcript || interimText) && (
-          <div className="mb-4 p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
-              Você disse:
-            </span>
-            <p className={`font-medium text-slate-900 dark:text-white ${fontClasses}`}>
-              {transcript} {interimText && <span className="opacity-50 italic">{interimText}</span>}
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mt-1">
+              Ex: <span className="italic font-semibold text-slate-800 dark:text-slate-200">&ldquo;2 quilos de alcatra 45 reais carnes e 3 caixas de leite 4 reais laticínios&rdquo;</span>
             </p>
           </div>
-        )}
 
-        {/* Error message / Warning */}
-        {errorMessage && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <p>{errorMessage}</p>
-          </div>
-        )}
+          {/* Live Spoken Text Box */}
+          {(transcript || interimText) && (
+            <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
+                Você disse:
+              </span>
+              <p className={`font-medium text-slate-900 dark:text-white ${fontClasses}`}>
+                {transcript} {interimText && <span className="opacity-50 italic">{interimText}</span>}
+              </p>
+            </div>
+          )}
 
-        {/* Manual typing fallback if user prefers or speech fails */}
-        <div className="mb-4">
-          <label htmlFor="voice-manual-input" className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-            Ou digite sua frase / lista por extenso:
-          </label>
-          <div className="flex gap-2">
+          {/* Error message / Warning */}
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <p>{errorMessage}</p>
+            </div>
+          )}
+
+          {/* Manual typing fallback */}
+          <div>
+            <label htmlFor="voice-manual-input" className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Ou digite sua frase com quantidade, unidade, preço e categoria:
+            </label>
             <input
               id="voice-manual-input"
               type="text"
               value={manualText}
               onChange={handleManualTextChange}
-              placeholder="Ex: Arroz, feijão, 1kg de tomate e 6 ovos"
-              className={`w-full px-3.5 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium ${fontClasses}`}
+              placeholder="Ex: 2 kg de alcatra 45 reais carnes, 1 sabão em pó 15 reais limpeza"
+              className={`w-full px-3.5 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-sm sm:text-base`}
             />
-            {(transcript || manualText) && (
+          </div>
+
+          {/* Identified / Configured items list with quantity, unit, price, and category */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                Itens para adicionar ({parsedItems.length}):
+              </span>
               <button
-                id="ai-enhance-button"
                 type="button"
-                onClick={handleEnhanceWithAI}
-                disabled={isProcessingAI}
-                className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 shrink-0 shadow-sm disabled:opacity-50"
-                title="Melhorar organização dos itens com Inteligência Artificial"
+                onClick={handleAddNewItem}
+                className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
               >
-                {isProcessingAI ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">Organizar</span> com IA
+                <Plus className="w-3.5 h-3.5" />
+                Adicionar mais um
               </button>
+            </div>
+
+            {parsedItems.length === 0 ? (
+              <div className="p-4 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-400">
+                Nenhum produto identificado ainda. Fale ou digite acima para gerar os itens.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-64 overflow-y-auto p-1">
+                {parsedItems.map((item, idx) => {
+                  return (
+                    <div
+                      key={`parsed-item-${idx}`}
+                      className="p-3 rounded-xl border bg-slate-50 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 shadow-sm space-y-2"
+                    >
+                      {/* Item Name & Remove Button */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => handleUpdateItemName(idx, e.target.value)}
+                            placeholder="Nome do produto"
+                            className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-sm sm:text-base focus:ring-2 focus:ring-emerald-500 outline-none"
+                            required
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveParsedItem(idx)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+                          title="Remover este item"
+                          aria-label="Remover item"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Detail Fields: Quantidade, Unidade, Preço, Categoria */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        {/* Quantidade */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                            Quantidade
+                          </label>
+                          <input
+                            type="number"
+                            step={item.unit === 'kg' || item.unit === 'L' ? '0.1' : '1'}
+                            min="0.1"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateItemQuantity(idx, parseFloat(e.target.value) || 1)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                        </div>
+
+                        {/* Unidade de Medida */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                            Unidade
+                          </label>
+                          <select
+                            value={item.unit}
+                            onChange={(e) => handleUpdateItemUnit(idx, e.target.value as UnitType)}
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                          >
+                            {UNIT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label} ({opt.fullLabel})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Preço (R$) */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                            Preço (R$)
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0,00"
+                              value={item.estimatedPrice !== undefined && item.estimatedPrice > 0 ? item.estimatedPrice : ''}
+                              onChange={(e) =>
+                                handleUpdateItemPrice(
+                                  idx,
+                                  e.target.value ? parseFloat(e.target.value) : undefined
+                                )
+                              }
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Categoria */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                            Categoria
+                          </label>
+                          <select
+                            value={item.category}
+                            onChange={(e) => handleUpdateItemCategory(idx, e.target.value as CategoryId)}
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                          >
+                            {Object.entries(CATEGORIES).map(([catId, catInfo]) => (
+                              <option key={catId} value={catId}>
+                                {catInfo.icon} {catInfo.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Identified items preview */}
-        {parsedItems.length > 0 && (
-          <div className="mb-4 pt-2 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
-                Itens identificados ({parsedItems.length}):
-              </span>
-              <span className="text-xs text-slate-500">Toque no X para remover</span>
-            </div>
-            <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-1">
-              {parsedItems.map((item, idx) => {
-                const cat = CATEGORIES[item.category] || CATEGORIES.outros;
-                return (
-                  <div
-                    key={`${item.name}-${idx}`}
-                    className="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm"
-                  >
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-md border font-semibold ${cat.bgColor} ${cat.color} ${cat.borderColor}`}
-                    >
-                      {cat.name}
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {item.quantity} {item.unit}
-                    </span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
-                      {item.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveParsedItem(idx)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700"
-                      title="Remover este item"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
           <button
             id="cancel-voice-button"
             type="button"
@@ -432,14 +504,15 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({
             id="confirm-voice-items-button"
             type="button"
             onClick={handleConfirmAdd}
-            disabled={parsedItems.length === 0}
+            disabled={parsedItems.filter(i => i.name.trim().length > 0).length === 0}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-sm sm:text-base"
           >
             <Check className="w-5 h-5" />
-            Adicionar {parsedItems.length > 0 ? `(${parsedItems.length}) Itens` : 'à Lista'}
+            Adicionar à Lista ({parsedItems.filter(i => i.name.trim().length > 0).length})
           </button>
         </div>
       </div>
     </div>
   );
 };
+

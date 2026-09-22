@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { ShoppingList, ShoppingItem, AccessibilitySettings, CategoryId } from '@/types/shopping';
+import { ShoppingList, ShoppingItem, AccessibilitySettings, CategoryId, UnitType } from '@/types/shopping';
 import { AccessibilityBar } from '@/components/AccessibilityBar';
 import { AddItemBar } from '@/components/AddItemBar';
 import { ItemRow } from '@/components/ItemRow';
@@ -15,7 +15,7 @@ import { MercadoListLogo } from '@/components/MercadoListLogo';
 import { PwaRegister } from '@/components/PwaRegister';
 import { CATEGORIES, detectCategory } from '@/lib/categories';
 import { agruparItensPorTabela } from '@/lib/productTable';
-import { speakListItems, stopSpeaking } from '@/lib/speech';
+import { ParsedVoiceItem, speakListItems, stopSpeaking } from '@/lib/speech';
 import { playCheckSound, playUncheckSound, playCompleteSound, playAddSound } from '@/lib/sound';
 import { decodeListsFromUrl } from '@/lib/sharing';
 import { Mic, Search, CheckCircle, ShoppingCart, Layers, Share2 } from 'lucide-react';
@@ -312,7 +312,7 @@ export default function ShoppingListPage() {
     );
   };
 
-  const handleAddMultipleVoiceItems = (parsedItems: { name: string; quantity: number; unit: string; category: string }[]) => {
+  const handleAddMultipleVoiceItems = (parsedItems: ParsedVoiceItem[]) => {
     const newItems: ShoppingItem[] = parsedItems.map((p, idx) => {
       const detected = detectCategory(p.name);
       const finalCategory = (!p.category || p.category === 'outros') ? detected : p.category;
@@ -320,8 +320,9 @@ export default function ShoppingListPage() {
         id: `item-${Date.now()}-${idx}`,
         name: p.name,
         quantity: p.quantity,
-        unit: p.unit as any,
-        category: finalCategory as any,
+        unit: p.unit as UnitType,
+        category: finalCategory as CategoryId,
+        estimatedPrice: p.estimatedPrice !== undefined && p.estimatedPrice > 0 ? p.estimatedPrice : undefined,
         isBought: false,
         createdAt: Date.now() + idx,
       };
@@ -593,9 +594,8 @@ export default function ShoppingListPage() {
           <div className="flex items-center gap-3 sm:gap-4">
             <MercadoListLogo size="md" />
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight flex items-center gap-1.5 leading-none mb-1">
-                <span className="text-[#DE382B] dark:text-[#F84B3D] font-black">MERCADO</span>
-                <span className="font-serif italic font-normal text-slate-800 dark:text-slate-100">List</span>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight leading-none mb-1 text-slate-900 dark:text-white">
+                Lista de Compras
               </h1>
               <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-snug">
                 Controle doméstico fácil com comando de voz e alta legibilidade
