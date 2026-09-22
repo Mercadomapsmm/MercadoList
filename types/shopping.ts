@@ -63,7 +63,12 @@ export type ContrastThemeId =
   | 'amarelo-preto'
   | 'azul-noturno'
   | 'verde-esmeralda'
-  | 'preto-branco';
+  | 'preto-branco'
+  | 'ambar-dourado'
+  | 'magenta-neon'
+  | 'roxo-eletrico'
+  | 'laranja-solar'
+  | 'solar-creme';
 
 export interface AccessibilitySettings {
   fontSize: FontSizeOption;

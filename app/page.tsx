@@ -641,12 +641,12 @@ export default function ShoppingListPage() {
         </div>
       </header>
 
-      {/* ÁREA FIXA NA TELA CONFORME IMAGEM INFORMADA (ListSelector + AddItemBar) */}
+      {/* ÁREA FIXA NA TELA: Suas Listas de Compras */}
       <div
         id="fixed-screen-area"
         className={`sticky top-0 z-30 w-full transition-colors border-b shadow-md backdrop-blur-md ${activeTheme.bgStickyHeader} ${activeTheme.borderStickyHeader}`}
       >
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 space-y-2.5">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
           {/* List Navigation Tabs */}
           <ListSelector
             lists={lists}
@@ -654,16 +654,6 @@ export default function ShoppingListPage() {
             onSelectList={handleSelectList}
             onCreateList={handleCreateList}
             onDeleteList={handleDeleteList}
-            fontSize={settings.fontSize}
-            highContrast={settings.highContrast}
-            contrastTheme={currentThemeId}
-            soundEnabled={settings.soundFeedback}
-          />
-
-          {/* Add Item Form / Quick Staples */}
-          <AddItemBar
-            onAddItem={handleAddItem}
-            onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
             fontSize={settings.fontSize}
             highContrast={settings.highContrast}
             contrastTheme={currentThemeId}
@@ -722,6 +712,16 @@ export default function ShoppingListPage() {
             </div>
           </div>
         )}
+
+        {/* Add Item Form / Quick Staples (retirado da parte fixa conforme solicitado) */}
+        <AddItemBar
+          onAddItem={handleAddItem}
+          onOpenVoiceModal={() => setIsVoiceModalOpen(true)}
+          fontSize={settings.fontSize}
+          highContrast={settings.highContrast}
+          contrastTheme={currentThemeId}
+          soundEnabled={settings.soundFeedback}
+        />
 
         {/* Shopping Progress & Summary Card */}
         {activeList && (

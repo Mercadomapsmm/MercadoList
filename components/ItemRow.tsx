@@ -55,6 +55,7 @@ export const ItemRow: React.FC<ItemRowProps> = ({
   contrastTheme,
 }) => {
   const currentThemeId = contrastTheme || (highContrast ? 'amarelo-preto' : 'padrao');
+  const activeTheme = CONTRAST_THEMES[currentThemeId] || CONTRAST_THEMES.padrao;
   const cat = CATEGORIES[item.category] || CATEGORIES.outros;
 
   // Estado para alteração de preço diretamente na lista
@@ -126,6 +127,16 @@ export const ItemRow: React.FC<ItemRowProps> = ({
           return 'bg-[#052e16]/80 border-2 border-emerald-400/40 text-emerald-200/50 opacity-80';
         case 'preto-branco':
           return 'bg-zinc-950 border-2 border-white/50 text-zinc-400 opacity-80';
+        case 'ambar-dourado':
+          return 'bg-[#221303]/80 border-2 border-amber-400/40 text-amber-300/50 opacity-80';
+        case 'magenta-neon':
+          return 'bg-[#22071e]/80 border-2 border-pink-400/40 text-pink-300/50 opacity-80';
+        case 'roxo-eletrico':
+          return 'bg-[#180a31]/80 border-2 border-purple-400/40 text-purple-300/50 opacity-80';
+        case 'laranja-solar':
+          return 'bg-[#1f1006]/80 border-2 border-orange-400/40 text-orange-300/50 opacity-80';
+        case 'solar-creme':
+          return 'bg-[#FEF9C3]/80 border-2 border-amber-700/40 text-amber-900/50 opacity-80';
         default:
           return 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 text-slate-500 dark:text-slate-400';
       }
@@ -140,6 +151,16 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         return 'bg-[#073b1d] border-2 border-emerald-400 text-white shadow-md hover:border-emerald-300';
       case 'preto-branco':
         return 'bg-zinc-950 border-2 border-white text-white shadow-md';
+      case 'ambar-dourado':
+        return 'bg-[#2a1705] border-2 border-amber-400 text-amber-100 shadow-md hover:border-amber-300';
+      case 'magenta-neon':
+        return 'bg-[#2c0a27] border-2 border-pink-400 text-pink-100 shadow-md hover:border-pink-300';
+      case 'roxo-eletrico':
+        return 'bg-[#220e44] border-2 border-purple-400 text-purple-100 shadow-md hover:border-purple-300';
+      case 'laranja-solar':
+        return 'bg-[#2c1709] border-2 border-orange-400 text-orange-100 shadow-md hover:border-orange-300';
+      case 'solar-creme':
+        return 'bg-[#FFFDF0] border-2 border-amber-700 text-[#451A03] shadow-md hover:border-amber-800';
       default:
         return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700';
     }
@@ -156,6 +177,16 @@ export const ItemRow: React.FC<ItemRowProps> = ({
           return 'bg-emerald-400 text-slate-950 shadow-sm ring-2 ring-emerald-400';
         case 'preto-branco':
           return 'bg-white text-black shadow-sm ring-2 ring-white';
+        case 'ambar-dourado':
+          return 'bg-amber-400 text-black shadow-sm ring-2 ring-amber-400';
+        case 'magenta-neon':
+          return 'bg-pink-500 text-white shadow-sm ring-2 ring-pink-400';
+        case 'roxo-eletrico':
+          return 'bg-purple-500 text-white shadow-sm ring-2 ring-purple-400';
+        case 'laranja-solar':
+          return 'bg-orange-500 text-black shadow-sm ring-2 ring-orange-400';
+        case 'solar-creme':
+          return 'bg-amber-700 text-white shadow-sm ring-2 ring-amber-600';
         default:
           return 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500';
       }
@@ -170,6 +201,16 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         return 'border-2 border-emerald-400 bg-[#042410] hover:bg-emerald-400/20';
       case 'preto-branco':
         return 'border-2 border-white bg-black hover:bg-white/20';
+      case 'ambar-dourado':
+        return 'border-2 border-amber-400 bg-[#1c0f03] hover:bg-amber-400/20';
+      case 'magenta-neon':
+        return 'border-2 border-pink-400 bg-[#1c0618] hover:bg-pink-400/20';
+      case 'roxo-eletrico':
+        return 'border-2 border-purple-400 bg-[#140828] hover:bg-purple-400/20';
+      case 'laranja-solar':
+        return 'border-2 border-orange-400 bg-[#180c05] hover:bg-orange-400/20';
+      case 'solar-creme':
+        return 'border-2 border-amber-700 bg-white hover:bg-amber-100';
       default:
         return 'border-2 border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-emerald-500';
     }
@@ -185,6 +226,16 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         return 'text-emerald-300 font-black';
       case 'preto-branco':
         return 'text-white font-black';
+      case 'ambar-dourado':
+        return 'text-amber-400 font-black';
+      case 'magenta-neon':
+        return 'text-pink-400 font-black';
+      case 'roxo-eletrico':
+        return 'text-purple-300 font-black';
+      case 'laranja-solar':
+        return 'text-orange-400 font-black';
+      case 'solar-creme':
+        return 'text-amber-800 font-black';
       default:
         return 'text-emerald-700 dark:text-emerald-400 font-black';
     }
@@ -239,8 +290,8 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                 onChange={(e) => onUpdateCategory(item.id, e.target.value as CategoryId)}
                 title="Clique para alterar a categoria deste produto"
                 className={`appearance-none cursor-pointer pl-2.5 pr-6 py-0.5 rounded-lg border text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                  highContrast
-                    ? 'bg-zinc-800 text-yellow-300 border-yellow-400'
+                  highContrast || (contrastTheme && contrastTheme !== 'padrao')
+                    ? `${activeTheme.bgInput} ${activeTheme.textPrimary} ${activeTheme.borderInput}`
                     : `${cat.bgColor} ${cat.color} ${cat.borderColor} hover:brightness-95`
                 }`}
               >
@@ -315,8 +366,8 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                   setIsEditingPrice(true);
                 }}
                 className={`group/price inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all text-left ${
-                  highContrast
-                    ? 'border-yellow-400 text-yellow-300 hover:bg-zinc-800'
+                  highContrast || (contrastTheme && contrastTheme !== 'padrao')
+                    ? `${activeTheme.borderInput} ${activeTheme.textPrimary} hover:opacity-90`
                     : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
                 } ${subTextSizeClass}`}
                 title="Clique para alterar o preço deste produto"
@@ -341,8 +392,8 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                   setIsEditingPrice(true);
                 }}
                 className={`group/price inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
-                  highContrast
-                    ? 'border-zinc-700 text-zinc-300 hover:border-yellow-400 hover:text-yellow-300'
+                  highContrast || (contrastTheme && contrastTheme !== 'padrao')
+                    ? `${activeTheme.borderInput} ${activeTheme.textSecondary} hover:opacity-100`
                     : 'border-dashed border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30'
                 } ${subTextSizeClass}`}
                 title="Clique para definir o preço deste produto"
@@ -359,7 +410,11 @@ export const ItemRow: React.FC<ItemRowProps> = ({
       {/* Right Section: Quantity & Delete Controls */}
       <div className="flex items-center justify-end sm:justify-center gap-2 sm:gap-3 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
         {/* Quantity Controls & Large Badge */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
+        <div className={`flex items-center gap-1 px-2 py-1 rounded-xl border ${
+          highContrast || (contrastTheme && contrastTheme !== 'padrao')
+            ? `${activeTheme.bgCard} ${activeTheme.borderCard}`
+            : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'
+        }`}>
           {!item.isBought && (
             <button
               id={`qty-minus-${item.id}`}
@@ -396,8 +451,8 @@ export const ItemRow: React.FC<ItemRowProps> = ({
                 aria-label={`Alterar unidade de medida de ${item.name}`}
                 disabled={item.isBought}
                 className={`appearance-none cursor-pointer pl-1.5 pr-4 py-0.5 rounded-md text-xs sm:text-sm font-bold uppercase tracking-wider transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 border ${
-                  highContrast
-                    ? 'bg-zinc-800 text-yellow-300 border-yellow-400'
+                  highContrast || (contrastTheme && contrastTheme !== 'padrao')
+                    ? `${activeTheme.bgInput} ${activeTheme.textPrimary} ${activeTheme.borderInput}`
                     : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200 hover:border-emerald-500'
                 }`}
               >

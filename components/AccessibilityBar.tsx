@@ -32,14 +32,14 @@ export const AccessibilityBar: React.FC<AccessibilityBarProps> = ({
       className={`w-full border-b transition-colors ${activeTheme.bgAccessibility} ${activeTheme.borderAccessibility}`}
     >
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-sm">
-        {/* Contraste: 5 Cores de Alta Visibilidade */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <div className="flex items-center gap-1 text-xs font-extrabold pr-1">
+        {/* Contraste: 10 Cores de Alta Visibilidade */}
+        <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-[280px]">
+          <div className="flex items-center gap-1 text-xs font-extrabold pr-1 shrink-0">
             <Eye className="w-4 h-4 text-emerald-500" />
-            <span className="font-extrabold tracking-tight">Contraste:</span>
+            <span className="font-extrabold tracking-tight">Contraste (10 cores):</span>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap p-1 rounded-xl bg-black/10 dark:bg-white/10 border border-current/20">
+          <div className="flex items-center gap-1 flex-wrap p-1 rounded-xl bg-black/10 dark:bg-white/10 border border-current/20">
             {THEME_LIST.map((t) => {
               const isSelected = currentThemeId === t.id;
               return (
